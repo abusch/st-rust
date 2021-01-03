@@ -1,6 +1,10 @@
 use anyhow::Result;
 use tokio::net::UdpSocket;
 
+mod protos;
+
+use protos::Announce;
+
 const MAGIC: &[u8] = &0x2EA7D90Bu32.to_be_bytes();
 
 #[tokio::main]
@@ -18,6 +22,8 @@ async fn main() -> Result<()> {
         }
         if &buf[0..4] == MAGIC {
             println!("Got an announcement packet!");
+            let packet = ::protobuf::parse_from_bytes::<Announce>(&buf[4..len]).unwrap();
+            println!("{:?}", packet);
         } else {
             println!("Discarding packet");
         }
