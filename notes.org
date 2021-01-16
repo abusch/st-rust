@@ -1,0 +1,51 @@
+#+TITLE: Syncthing in Rust
+
+Some notes about trying to understand how syncthing works by trying to implement parts of it in rust.
+
+* Keys and device ids
+** key pair
+A key pair is generated the first time: private key + public key (stored as an X509 certificate). The key pair is used to do a TLS handshake with other peers.
+
+*** X509 certificates
+**** PEM
+The keys are stored in PEM format (basically ascii-armored way to attach binary data): base64 data between delimiters:
+
+   #+begin_src
+-----BEGIN FOO-----
+<data goes here>
+-----END FOO-----
+   #+end_src
+
+The binary data encoded in the PEM file is the certificate encoded with ASN.1 and serialized with DER.
+**** ASN.1
+ASN.1 defines a way to encode data in data structures i.e. defines a grammar for a set of types, with their fields.
+
+The general structure of a certificate, encoded as ASN.1, is as follows:
+#+begin_src
+    Certificate
+        Version Number
+        Serial Number
+        Signature Algorithm ID
+        Issuer Name
+        Validity period
+            Not Before
+            Not After
+        Subject name
+        Subject Public Key Info
+            Public Key Algorithm
+            Subject Public Key
+        Issuer Unique Identifier (optional)
+        Subject Unique Identifier (optional)
+        Extensions (optional)
+            ...
+    Certificate Signature Algorithm
+    Certificate Signature
+#+end_src
+**** DER
+=DER= is a _type-length-value_ way to serialize data such as ASN.1 into bytes.
+
+** Device ID
+- SHA-256 hash of the certificate (the DER-encoded binary data)
+- base-32 encoded
+- in recent versions the device ID contains 4 checksum digits (1 every 13 characters), so the length of the ID is 56 instead of 52. See Luhn's algorithm.
+- '-' are inserted every 7 characters for readability purposed
