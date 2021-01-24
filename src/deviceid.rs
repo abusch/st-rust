@@ -5,7 +5,7 @@ use anyhow::Result;
 use data_encoding::BASE32_NOPAD;
 use ring::digest::{digest, Digest, SHA256};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct DeviceId([u8; 32]);
 
 impl DeviceId {
@@ -18,6 +18,10 @@ impl DeviceId {
                 .try_into()
                 .expect("SHA256 has wrong length!"),
         )
+    }
+
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.0.to_vec()
     }
 }
 

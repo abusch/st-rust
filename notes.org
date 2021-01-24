@@ -49,3 +49,15 @@ The general structure of a certificate, encoded as ASN.1, is as follows:
 - base-32 encoded
 - in recent versions the device ID contains 4 checksum digits (1 every 13 characters), so the length of the ID is 56 instead of 52. See Luhn's algorithm.
 - '-' are inserted every 7 characters for readability purposed
+* Local discovery
+** Listening for announcement packets on the local network
+- Listens for UDP messages broadcasted on port 21027. Registers the announced devices in a cache.
+- The cache is used to resolve device ids
+** announce current device on the network
+- every 30-60s broadcast an =Announce= packet on the network
+
+* Connecting to a peer
+- Try to resolve the device id to get addresses to connect to, by looking through different "providers" eg. config file, local discovery, global discovery, etc.
+- Connect to the address with TLS while presenting our own certificate
+- exchange Hello packet
+- Verify that the remote certificate (there should be only one) matches the device ID we expect.

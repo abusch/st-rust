@@ -1,0 +1,206 @@
+syntax = "proto3";
+
+package protocol;
+
+import "ext.proto";
+
+// --- Pre-auth ---
+
+message Hello {
+    string device_name    = 1;
+    string client_name    = 2;
+    string client_version = 3;
+}
+
+// --- Header ---
+
+message Header {
+    MessageType        type        = 1;
+    MessageCompression compression = 2;
+}
+
+enum MessageType {
+    MESSAGE_TYPE_CLUSTER_CONFIG    = 0;
+    MESSAGE_TYPE_INDEX             = 1;
+    MESSAGE_TYPE_INDEX_UPDATE      = 2;
+    MESSAGE_TYPE_REQUEST           = 3;
+    MESSAGE_TYPE_RESPONSE          = 4;
+    MESSAGE_TYPE_DOWNLOAD_PROGRESS = 5;
+    MESSAGE_TYPE_PING              = 6;
+    MESSAGE_TYPE_CLOSE             = 7;
+}
+
+enum MessageCompression {
+    MESSAGE_COMPRESSION_NONE = 0;
+    MESSAGE_COMPRESSION_LZ4  = 1 [(ext.enumgoname) = "MessageCompressionLZ4"];
+}
+
+// --- Actual messages ---
+
+// Cluster Config
+
+message ClusterConfig {
+    repeated Folder folders = 1;
+}
+
+message Folder {
+    string id                   = 1 [(ext.goname) = "ID"];
+    string label                = 2;
+    bool   read_only            = 3;
+    bool   ignore_permissions   = 4;
+    bool   ignore_delete        = 5;
+    bool   disable_temp_indexes = 6;
+    bool   paused               = 7;
+
+    repeated Device devices = 16;
+}
+
+message Device {
+    bytes           id                         = 1 [(ext.goname) = "ID", (ext.device_id) = true];
+    string          name                       = 2;
+    repeated string addresses                  = 3;
+    Compression     compression                = 4;
+    string          cert_name                  = 5;
+    int64           max_sequence               = 6;
+    bool            introducer                 = 7;
+    uint64          index_id                   = 8 [(ext.goname) = "IndexID", (ext.gotype) = "IndexID"];
+    bool            skip_introduction_removals = 9;
+    bytes           encryption_password_token  = 10;
+}
+
+enum Compression {
+    COMPRESSION_METADATA = 0;
+    COMPRESSION_NEVER    = 1;
+    COMPRESSION_ALWAYS   = 2;
+}
+
+// Index and Index Update
+
+message Index {
+    string            folder = 1;
+    repeated FileInfo files  = 2;
+}
+
+message IndexUpdate {
+    string            folder = 1;
+    repeated FileInfo files  = 2;
+}
+
+message FileInfo {
+
+    // The field ordering here optimizes for struct size / alignment --
+    // large types come before smaller ones.
+
+    string             name           = 1;
+    int64              size           = 3;
+    int64              modified_s     = 5;
+    uint64             modified_by    = 12 [(ext.gotype) = "ShortID"];
+    Vector             version        = 9;
+    int64              sequence       = 10;
+    repeated BlockInfo blocks         = 16;
+    string             symlink_target = 17;
+    bytes              blocks_hash    = 18;
+    bytes              encrypted      = 19;
+    FileInfoType       type           = 2;
+    uint32             permissions    = 4;
+    int32              modified_ns    = 11;
+    int32              block_size     = 13 [(ext.goname) = "RawBlockSize"];
+
+    // The local_flags fields stores flags that are relevant to the local
+    // host only. It is not part of the protocol, doesn't get sent or
+    // received (we make sure to zero it), nonetheless we need it on our
+    // struct and to be able to serialize it to/from the database.
+    uint32 local_flags = 1000;
+    // The version_hash is an implementation detail and not part of the wire
+    // format.
+    bytes version_hash = 1001;
+
+    bool deleted        = 6;
+    bool invalid        = 7 [(ext.goname) = "RawInvalid"];
+    bool no_permissions = 8;
+}
+
+enum FileInfoType {
+    FILE_INFO_TYPE_FILE              = 0;
+    FILE_INFO_TYPE_DIRECTORY         = 1;
+    FILE_INFO_TYPE_SYMLINK_FILE      = 2 [deprecated = true];
+    FILE_INFO_TYPE_SYMLINK_DIRECTORY = 3 [deprecated = true];
+    FILE_INFO_TYPE_SYMLINK           = 4;
+}
+
+message BlockInfo {
+    bytes  hash      = 3;
+    int64  offset    = 1;
+    int32  size      = 2;
+    uint32 weak_hash = 4;
+}
+
+message Vector {
+    repeated Counter counters = 1;
+}
+
+message Counter {
+    uint64 id    = 1 [(ext.goname) = "ID", (ext.gotype) = "ShortID"];
+    uint64 value = 2;
+}
+
+// Request
+
+message Request {
+    int32  id             = 1 [(ext.goname) = "ID"];
+    string folder         = 2;
+    string name           = 3;
+    int64  offset         = 4;
+    int32  size           = 5;
+    bytes  hash           = 6;
+    bool   from_temporary = 7;
+    uint32 weak_hash      = 8;
+    int32  block_no       = 9;
+}
+
+// Response
+
+message Response {
+    int32     id   = 1 [(ext.goname) = "ID"];
+    bytes     data = 2;
+    ErrorCode code = 3;
+}
+
+enum ErrorCode {
+    ERROR_CODE_NO_ERROR     = 0;
+    ERROR_CODE_GENERIC      = 1;
+    ERROR_CODE_NO_SUCH_FILE = 2;
+    ERROR_CODE_INVALID_FILE = 3;
+}
+
+// DownloadProgress
+
+message DownloadProgress {
+    string                              folder  = 1;
+    repeated FileDownloadProgressUpdate updates = 2;
+}
+
+message FileDownloadProgressUpdate {
+    FileDownloadProgressUpdateType update_type   = 1;
+    string                         name          = 2;
+    Vector                         version       = 3;
+    repeated int32                 block_indexes = 4 [packed=false];
+    int32                          block_size    = 5;
+}
+
+enum FileDownloadProgressUpdateType {
+    FILE_DOWNLOAD_PROGRESS_UPDATE_TYPE_APPEND = 0;
+    FILE_DOWNLOAD_PROGRESS_UPDATE_TYPE_FORGET = 1;
+}
+
+// Ping
+
+message Ping {
+}
+
+// Close
+
+message Close {
+    string reason = 1;
+}
+
