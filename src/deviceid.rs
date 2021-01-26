@@ -9,6 +9,10 @@ use ring::digest::{digest, Digest, SHA256};
 pub struct DeviceId([u8; 32]);
 
 impl DeviceId {
+    pub fn new(id: &[u8]) -> Self {
+        DeviceId(id.try_into().expect("Invalid length slice length! Expecting 32."))
+    }
+
     pub fn from_der_cert(cert: &[u8]) -> DeviceId {
         let sha256: Digest = digest(&SHA256, cert);
 
