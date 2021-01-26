@@ -41,8 +41,12 @@ async fn main() -> Result<()> {
 
     println!("DeviceId = {}", device_id);
 
+    // TLS config
     let mut config = ServerConfig::new(NoClientAuth::new());
+    // Load up our certificate and key to present during TLS handshake
     config.set_single_cert(certs, keys.remove(0))?;
+    // Set up application level protocol negotation and indicate we want bep/1.0
+    config.set_protocols(&[b"bep/1.0".to_vec()]);
 
     let handle = tokio::spawn(async move { local_announce(device_id).await.unwrap() });
     let handle2 = tokio::spawn(async move { test_udp().await.unwrap() });

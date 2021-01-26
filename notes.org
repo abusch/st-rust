@@ -59,5 +59,10 @@ The general structure of a certificate, encoded as ASN.1, is as follows:
 * Connecting to a peer
 - Try to resolve the device id to get addresses to connect to, by looking through different "providers" eg. config file, local discovery, global discovery, etc.
 - Connect to the address with TLS while presenting our own certificate
-- exchange Hello packet
+- exchange =Hello= packet
 - Verify that the remote certificate (there should be only one) matches the device ID we expect.
+* Implementation
+** Next steps:
+- [ ] Set up protocol negotiation for bep/1.0
+- [ ] Send a =Hello= packet back
+- [ ] Verify peer's certificate
