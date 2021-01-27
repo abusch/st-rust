@@ -63,6 +63,18 @@ The general structure of a certificate, encoded as ASN.1, is as follows:
 - Verify that the remote certificate (there should be only one) matches the device ID we expect.
 * Implementation
 ** Next steps:
-- [ ] Set up protocol negotiation for bep/1.0
-- [ ] Send a =Hello= packet back
-- [ ] Verify peer's certificate
+- [X] Set up protocol negotiation for bep/1.0
+- [X] Send a =Hello= packet back
+- [X] Verify peer's certificate
+- [ ] Keep the connection open and handle incoming messages
+** Libs
+- Use Tokio for the async stuff...
+- Use tokio-tls (and in particular tokio_rustls) for TLS stuff: wraps rustls in an async API and integrates with tokio
+- [ ] Use =tracing= for logging
+- Can =tokio-tower= be useful here?
+** TLS stuff
+When connecting 2 peers, they each offer their certificates / key as part of the TLS handshake, but it does *not* do client authentication (as the certificates are self-signed). Unfortunately, =rustls= doesn't seem to support this scenario out of the box...
+- =NoClientAuth= doesn't do client authentication, but doesn't request the peer certificate
+- =AllowAnyAuthenticatedClient= and =AllowAnyAnonymousOrAuthenticatedClient= do request the peer certificate, but try to validate it (and fail)
+
+The workaround was to implement a custom =ClientCertVerifier= that requests the peer certificate but doesn't do authentication (or rather, accepts everything...). It required enable the =dangerous_configuration= feature on the =rustls= crate to access the =ClientCertVerifier= trait.

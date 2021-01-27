@@ -1,20 +1,22 @@
 use std::{fs::File, io::BufReader, path::Path, sync::Arc, time::Duration};
-use std::{io::Write, net::SocketAddr};
+use std::net::SocketAddr;
 
 use anyhow::{anyhow, Result};
 use deviceid::DeviceId;
 use protobuf::{Message, RepeatedField};
-use rustls::{Certificate, NoClientAuth, PrivateKey, ServerConfig, internal::pemfile::{certs, pkcs8_private_keys}};
-use tokio::io::AsyncReadExt;
-use tokio::net::{TcpListener, TcpStream, UdpSocket};
-use tokio::time::sleep;
+use rustls::{Certificate, ClientCertVerifier, PrivateKey, ServerConfig, Session, internal::pemfile::{certs, pkcs8_private_keys}};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::{TcpListener, TcpStream, UdpSocket},
+    time::sleep,
+};
 
 mod deviceid;
 mod luhn;
 mod protos;
 
 use protos::{Announce, Hello};
-use tokio_rustls::{TlsAcceptor, server::TlsStream};
+use tokio_rustls::{server::TlsStream, TlsAcceptor};
 
 const MAGIC: &[u8] = &0x2EA7D90Bu32.to_be_bytes();
 
@@ -30,7 +32,6 @@ fn load_keys<P: AsRef<Path>>(path: P) -> Result<Vec<PrivateKey>> {
         .map_err(|_| anyhow!("Failed to load key file: {}", path.display()))
 }
 
-
 #[tokio::main]
 async fn main() -> Result<()> {
     let certs = load_certs("cert.pem")?;
@@ -42,7 +43,7 @@ async fn main() -> Result<()> {
     println!("DeviceId = {}", device_id);
 
     // TLS config
-    let mut config = ServerConfig::new(NoClientAuth::new());
+    let mut config = ServerConfig::new(Arc::new(RequestCertificate));
     // Load up our certificate and key to present during TLS handshake
     config.set_single_cert(certs, keys.remove(0))?;
     // Set up application level protocol negotation and indicate we want bep/1.0
@@ -81,19 +82,55 @@ async fn tcp_listener(config: ServerConfig) -> Result<()> {
     }
 }
 
-async fn process_tcp_request(mut stream: TlsStream<TcpStream>, peer_addr: SocketAddr) -> Result<()> {
+async fn process_tcp_request(
+    mut stream: TlsStream<TcpStream>,
+    peer_addr: SocketAddr,
+) -> Result<()> {
     println!("Got a TCP connection from {}", peer_addr);
+    let (_inner, session) = stream.get_ref();
+    if let Some(alpn) = session.get_alpn_protocol() {
+        let protocol = String::from_utf8_lossy(alpn);
+        println!("Negotiated protocol (ALPN): {}", protocol);
+    }
+    if let Some(proto_version) = session.get_protocol_version() {
+        println!("Protocol version = {:?}", proto_version);
+    }
+    if let Some(certs) = session.get_peer_certificates() {
+        println!("Got {} certificates from the peer", certs.len());
+        if !certs.is_empty() {
+            let peer_id = DeviceId::from_der_cert(&certs[0].0);
+            println!("Peer device id = {}", peer_id);
+        }
+    }
     let mut header = [0u8; 4];
     stream.read_exact(&mut header).await?;
     if &header[..] == MAGIC {
+        println!("Found magic header");
         let len = stream.read_u16().await?;
         if len > 32767 {
             anyhow!("Hello message too big: {}", len);
         }
         let mut buf = vec![0u8; len as usize];
         stream.read_exact(&mut buf).await?;
+        println!("Read {} bytes", len);
         let hello = Hello::parse_from_bytes(&buf)?;
         println!("Got a Hello packet! {:?}", hello);
+
+        // Send our own Hello back
+        let mut reply = Hello::default();
+        reply.set_device_name("calculon".to_string());
+        reply.set_client_name("st-rust".to_string());
+        reply.set_client_version("0.1".to_string());
+
+        buf.clear();
+        std::io::Write::write(&mut buf, MAGIC)?;
+        let mut reply_bytes = reply.write_to_bytes()?;
+        let len = reply_bytes.len() as u16;
+        std::io::Write::write(&mut buf, &len.to_be_bytes())?;
+        buf.append(&mut reply_bytes);
+        println!("Sending Hello packet back: {:?}", reply);
+        stream.write_all(&buf).await?;
+        println!("Sent {} bytes back", buf.len());
     } else {
         println!("Invalid magic number in header: {:?}", header);
     }
@@ -115,7 +152,7 @@ async fn local_announce(id: DeviceId) -> Result<()> {
     println!("Ready to send announcement packets");
     loop {
         buf.clear();
-        buf.write(MAGIC)?;
+        std::io::Write::write(&mut buf, MAGIC)?;
         sleep(duration).await;
         println!("Sending announcement packet");
         let addresses = vec!["tcp://10.0.1.214:22000".to_string()];
@@ -154,5 +191,32 @@ async fn test_udp() -> Result<()> {
             }
             Err(e) => eprintln!("Failed to read from UDP socket: {}", e),
         }
+    }
+}
+
+pub struct RequestCertificate;
+
+impl ClientCertVerifier for RequestCertificate {
+    fn client_auth_root_subjects(
+        &self,
+        _sni: Option<&tokio_rustls::webpki::DNSName>,
+    ) -> Option<rustls::DistinguishedNames> {
+        Some(rustls::DistinguishedNames::new())
+    }
+
+    fn verify_client_cert(
+        &self,
+        _presented_certs: &[Certificate],
+        _sni: Option<&tokio_rustls::webpki::DNSName>,
+    ) -> Result<rustls::ClientCertVerified, rustls::TLSError> {
+        Ok(rustls::ClientCertVerified::assertion())
+    }
+
+    fn offer_client_auth(&self) -> bool {
+        true
+    }
+
+    fn client_auth_mandatory(&self, _sni: Option<&tokio_rustls::webpki::DNSName>) -> Option<bool> {
+        Some(false)
     }
 }
