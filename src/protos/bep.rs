@@ -5257,7 +5257,7 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     ssionR\x0bcompression\x12\x1b\n\tcert_name\x18\x05\x20\x01(\tR\x08certNa\
     me\x12!\n\x0cmax_sequence\x18\x06\x20\x01(\x03R\x0bmaxSequence\x12\x1e\n\
     \nintroducer\x18\x07\x20\x01(\x08R\nintroducer\x121\n\x08index_id\x18\
-    \x08\x20\x01(\x04R\x07indexIdB\x16\x92\xd0$\x07IndexID\x9a\xd0$\x07Index\
+    \x08\x20\x01(\x04R\x07indexIdB\x16\x9a\xd0$\x07IndexID\x92\xd0$\x07Index\
     ID\x12<\n\x1askip_introduction_removals\x18\t\x20\x01(\x08R\x18skipIntro\
     ductionRemovals\x12:\n\x19encryption_password_token\x18\n\x20\x01(\x0cR\
     \x17encryptionPasswordToken\"I\n\x05Index\x12\x16\n\x06folder\x18\x01\

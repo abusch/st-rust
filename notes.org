@@ -66,6 +66,7 @@ The general structure of a certificate, encoded as ASN.1, is as follows:
 - [X] Set up protocol negotiation for bep/1.0
 - [X] Send a =Hello= packet back
 - [X] Verify peer's certificate
+- [ ] Refactor/clean-up code as it's getting messy...
 - [ ] Keep the connection open and handle incoming messages
 ** Libs
 - Use Tokio for the async stuff...
