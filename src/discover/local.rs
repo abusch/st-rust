@@ -54,7 +54,7 @@ pub async fn local_udp_listener() -> Result<()> {
                 if &buf[0..4] == MAGIC {
                     let packet = Announce::parse_from_bytes(&buf[4..len]).unwrap();
                     let device_id = DeviceId::new(packet.get_id());
-                    info!("Go an announcement packet from {}", device_id);
+                    info!("Got an announcement packet from {}", device_id);
                 // println!("{:?}", packet);
                 } else {
                     info!("Discarding unknown packet");
