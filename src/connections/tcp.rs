@@ -11,7 +11,10 @@ use tokio::{
 use tokio_rustls::{server::TlsStream, TlsAcceptor};
 use tracing::{error, info, warn};
 
-use crate::{deviceid::DeviceId, protos::Hello, MAGIC};
+use crate::{
+    protocol::{DeviceId, MAGIC},
+    protos::Hello,
+};
 
 pub async fn tcp_listener(config: ServerConfig) -> Result<()> {
     let acceptor = TlsAcceptor::from(Arc::new(config));

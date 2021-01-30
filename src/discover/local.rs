@@ -1,13 +1,14 @@
 use std::time::Duration;
 
 use anyhow::Result;
-use crate::{MAGIC, deviceid::DeviceId, protos::Announce};
 use protobuf::{Message, RepeatedField};
-use tokio::{
-    net::UdpSocket,
-    time::sleep,
-};
+use tokio::{net::UdpSocket, time::sleep};
 use tracing::{error, info, warn};
+
+use crate::{
+    protocol::{DeviceId, MAGIC},
+    protos::Announce,
+};
 
 pub async fn local_announce(id: DeviceId) -> Result<()> {
     let instance_id: i64 = fastrand::i64(..);

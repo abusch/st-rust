@@ -61,6 +61,15 @@ The general structure of a certificate, encoded as ASN.1, is as follows:
 - Connect to the address with TLS while presenting our own certificate
 - exchange =Hello= packet
 - Verify that the remote certificate (there should be only one) matches the device ID we expect.
+* Main loop
+- a =service= launches a bunch of goroutines:
+  + one to listen for incoming connections
+    - once the connection is established, TLS handshaked done, identity verified, a new =connection= is created and registered
+  + a dialer that loops and tries to connect to configured peers
+- when a =connection= is registered and started, it launches a bunch of goroutines:
+  + one that reads messages and sends them to the =dispatcher=
+  + a =dispatcher= that handles the different messages (e.g. =ClusterConfig=, =Index=, =Close=, etc...)
+  + ...
 * Implementation
 ** Next steps:
 - [X] Set up protocol negotiation for bep/1.0

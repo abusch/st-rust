@@ -3,16 +3,13 @@ use tracing::{error, info};
 use tracing_subscriber;
 
 mod connections;
-mod deviceid;
+mod protocol;
 mod discover;
-mod luhn;
 mod protos;
 mod tls;
 
 use connections::tcp::tcp_listener;
 use discover::local::{local_announce, local_udp_listener};
-
-pub const MAGIC: &[u8] = &0x2EA7D90Bu32.to_be_bytes();
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -23,7 +20,7 @@ async fn main() -> Result<()> {
     info!("Loaded {} certificates", certs.len());
     let mut keys = tls::load_keys("key.pem")?;
     info!("Loaded {} keys", keys.len());
-    let device_id = deviceid::DeviceId::from_der_cert(certs[0].0.as_slice());
+    let device_id = protocol::DeviceId::from_der_cert(certs[0].0.as_slice());
 
     info!("DeviceId = {}", device_id);
 
