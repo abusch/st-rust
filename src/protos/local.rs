@@ -26,8 +26,8 @@
 #[derive(PartialEq,Clone,Default)]
 pub struct Announce {
     // message fields
-    pub id: ::std::vec::Vec<u8>,
-    pub addresses: ::protobuf::RepeatedField<::std::string::String>,
+    pub id: ::bytes::Bytes,
+    pub addresses: ::std::vec::Vec<::protobuf::Chars>,
     pub instance_id: i64,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
@@ -56,25 +56,25 @@ impl Announce {
     }
 
     // Param is passed by value, moved
-    pub fn set_id(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_id(&mut self, v: ::bytes::Bytes) {
         self.id = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_id(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_id(&mut self) -> &mut ::bytes::Bytes {
         &mut self.id
     }
 
     // Take field
-    pub fn take_id(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.id, ::std::vec::Vec::new())
+    pub fn take_id(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.id, ::bytes::Bytes::new())
     }
 
     // repeated string addresses = 2;
 
 
-    pub fn get_addresses(&self) -> &[::std::string::String] {
+    pub fn get_addresses(&self) -> &[::protobuf::Chars] {
         &self.addresses
     }
     pub fn clear_addresses(&mut self) {
@@ -82,18 +82,18 @@ impl Announce {
     }
 
     // Param is passed by value, moved
-    pub fn set_addresses(&mut self, v: ::protobuf::RepeatedField<::std::string::String>) {
+    pub fn set_addresses(&mut self, v: ::std::vec::Vec<::protobuf::Chars>) {
         self.addresses = v;
     }
 
     // Mutable pointer to the field.
-    pub fn mut_addresses(&mut self) -> &mut ::protobuf::RepeatedField<::std::string::String> {
+    pub fn mut_addresses(&mut self) -> &mut ::std::vec::Vec<::protobuf::Chars> {
         &mut self.addresses
     }
 
     // Take field
-    pub fn take_addresses(&mut self) -> ::protobuf::RepeatedField<::std::string::String> {
-        ::std::mem::replace(&mut self.addresses, ::protobuf::RepeatedField::new())
+    pub fn take_addresses(&mut self) -> ::std::vec::Vec<::protobuf::Chars> {
+        ::std::mem::replace(&mut self.addresses, ::std::vec::Vec::new())
     }
 
     // int64 instance_id = 3;
@@ -122,10 +122,10 @@ impl ::protobuf::Message for Announce {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.id)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.id)?;
                 },
                 2 => {
-                    ::protobuf::rt::read_repeated_string_into(wire_type, is, &mut self.addresses)?;
+                    ::protobuf::rt::read_repeated_carllerche_string_into(wire_type, is, &mut self.addresses)?;
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
@@ -208,12 +208,12 @@ impl ::protobuf::Message for Announce {
         static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
         descriptor.get(|| {
             let mut fields = ::std::vec::Vec::new();
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                 "id",
                 |m: &Announce| { &m.id },
                 |m: &mut Announce| { &mut m.id },
             ));
-            fields.push(::protobuf::reflect::accessor::make_repeated_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_vec_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "addresses",
                 |m: &Announce| { &m.addresses },
                 |m: &mut Announce| { &mut m.addresses },

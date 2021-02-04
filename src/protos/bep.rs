@@ -26,9 +26,9 @@
 #[derive(PartialEq,Clone,Default)]
 pub struct Hello {
     // message fields
-    pub device_name: ::std::string::String,
-    pub client_name: ::std::string::String,
-    pub client_version: ::std::string::String,
+    pub device_name: ::protobuf::Chars,
+    pub client_name: ::protobuf::Chars,
+    pub client_version: ::protobuf::Chars,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
     pub cached_size: ::protobuf::CachedSize,
@@ -52,23 +52,23 @@ impl Hello {
         &self.device_name
     }
     pub fn clear_device_name(&mut self) {
-        self.device_name.clear();
+        ::protobuf::Clear::clear(&mut self.device_name);
     }
 
     // Param is passed by value, moved
-    pub fn set_device_name(&mut self, v: ::std::string::String) {
+    pub fn set_device_name(&mut self, v: ::protobuf::Chars) {
         self.device_name = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_device_name(&mut self) -> &mut ::std::string::String {
+    pub fn mut_device_name(&mut self) -> &mut ::protobuf::Chars {
         &mut self.device_name
     }
 
     // Take field
-    pub fn take_device_name(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.device_name, ::std::string::String::new())
+    pub fn take_device_name(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.device_name, ::protobuf::Chars::new())
     }
 
     // string client_name = 2;
@@ -78,23 +78,23 @@ impl Hello {
         &self.client_name
     }
     pub fn clear_client_name(&mut self) {
-        self.client_name.clear();
+        ::protobuf::Clear::clear(&mut self.client_name);
     }
 
     // Param is passed by value, moved
-    pub fn set_client_name(&mut self, v: ::std::string::String) {
+    pub fn set_client_name(&mut self, v: ::protobuf::Chars) {
         self.client_name = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_client_name(&mut self) -> &mut ::std::string::String {
+    pub fn mut_client_name(&mut self) -> &mut ::protobuf::Chars {
         &mut self.client_name
     }
 
     // Take field
-    pub fn take_client_name(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.client_name, ::std::string::String::new())
+    pub fn take_client_name(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.client_name, ::protobuf::Chars::new())
     }
 
     // string client_version = 3;
@@ -104,23 +104,23 @@ impl Hello {
         &self.client_version
     }
     pub fn clear_client_version(&mut self) {
-        self.client_version.clear();
+        ::protobuf::Clear::clear(&mut self.client_version);
     }
 
     // Param is passed by value, moved
-    pub fn set_client_version(&mut self, v: ::std::string::String) {
+    pub fn set_client_version(&mut self, v: ::protobuf::Chars) {
         self.client_version = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_client_version(&mut self) -> &mut ::std::string::String {
+    pub fn mut_client_version(&mut self) -> &mut ::protobuf::Chars {
         &mut self.client_version
     }
 
     // Take field
-    pub fn take_client_version(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.client_version, ::std::string::String::new())
+    pub fn take_client_version(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.client_version, ::protobuf::Chars::new())
     }
 }
 
@@ -134,13 +134,13 @@ impl ::protobuf::Message for Hello {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.device_name)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.device_name)?;
                 },
                 2 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.client_name)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.client_name)?;
                 },
                 3 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.client_version)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.client_version)?;
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -216,17 +216,17 @@ impl ::protobuf::Message for Hello {
         static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
         descriptor.get(|| {
             let mut fields = ::std::vec::Vec::new();
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "device_name",
                 |m: &Hello| { &m.device_name },
                 |m: &mut Hello| { &mut m.device_name },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "client_name",
                 |m: &Hello| { &m.client_name },
                 |m: &mut Hello| { &mut m.client_name },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "client_version",
                 |m: &Hello| { &m.client_version },
                 |m: &mut Hello| { &mut m.client_version },
@@ -247,9 +247,9 @@ impl ::protobuf::Message for Hello {
 
 impl ::protobuf::Clear for Hello {
     fn clear(&mut self) {
-        self.device_name.clear();
-        self.client_name.clear();
-        self.client_version.clear();
+        ::protobuf::Clear::clear(&mut self.device_name);
+        ::protobuf::Clear::clear(&mut self.client_name);
+        ::protobuf::Clear::clear(&mut self.client_version);
         self.unknown_fields.clear();
     }
 }
@@ -614,8 +614,8 @@ impl ::protobuf::reflect::ProtobufValue for ClusterConfig {
 #[derive(PartialEq,Clone,Default)]
 pub struct Folder {
     // message fields
-    pub id: ::std::string::String,
-    pub label: ::std::string::String,
+    pub id: ::protobuf::Chars,
+    pub label: ::protobuf::Chars,
     pub read_only: bool,
     pub ignore_permissions: bool,
     pub ignore_delete: bool,
@@ -645,23 +645,23 @@ impl Folder {
         &self.id
     }
     pub fn clear_id(&mut self) {
-        self.id.clear();
+        ::protobuf::Clear::clear(&mut self.id);
     }
 
     // Param is passed by value, moved
-    pub fn set_id(&mut self, v: ::std::string::String) {
+    pub fn set_id(&mut self, v: ::protobuf::Chars) {
         self.id = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_id(&mut self) -> &mut ::std::string::String {
+    pub fn mut_id(&mut self) -> &mut ::protobuf::Chars {
         &mut self.id
     }
 
     // Take field
-    pub fn take_id(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.id, ::std::string::String::new())
+    pub fn take_id(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.id, ::protobuf::Chars::new())
     }
 
     // string label = 2;
@@ -671,23 +671,23 @@ impl Folder {
         &self.label
     }
     pub fn clear_label(&mut self) {
-        self.label.clear();
+        ::protobuf::Clear::clear(&mut self.label);
     }
 
     // Param is passed by value, moved
-    pub fn set_label(&mut self, v: ::std::string::String) {
+    pub fn set_label(&mut self, v: ::protobuf::Chars) {
         self.label = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_label(&mut self) -> &mut ::std::string::String {
+    pub fn mut_label(&mut self) -> &mut ::protobuf::Chars {
         &mut self.label
     }
 
     // Take field
-    pub fn take_label(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.label, ::std::string::String::new())
+    pub fn take_label(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.label, ::protobuf::Chars::new())
     }
 
     // bool read_only = 3;
@@ -806,10 +806,10 @@ impl ::protobuf::Message for Folder {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.id)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.id)?;
                 },
                 2 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.label)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.label)?;
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
@@ -956,12 +956,12 @@ impl ::protobuf::Message for Folder {
         static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
         descriptor.get(|| {
             let mut fields = ::std::vec::Vec::new();
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "id",
                 |m: &Folder| { &m.id },
                 |m: &mut Folder| { &mut m.id },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "label",
                 |m: &Folder| { &m.label },
                 |m: &mut Folder| { &mut m.label },
@@ -1012,8 +1012,8 @@ impl ::protobuf::Message for Folder {
 
 impl ::protobuf::Clear for Folder {
     fn clear(&mut self) {
-        self.id.clear();
-        self.label.clear();
+        ::protobuf::Clear::clear(&mut self.id);
+        ::protobuf::Clear::clear(&mut self.label);
         self.read_only = false;
         self.ignore_permissions = false;
         self.ignore_delete = false;
@@ -1039,16 +1039,16 @@ impl ::protobuf::reflect::ProtobufValue for Folder {
 #[derive(PartialEq,Clone,Default)]
 pub struct Device {
     // message fields
-    pub id: ::std::vec::Vec<u8>,
-    pub name: ::std::string::String,
-    pub addresses: ::protobuf::RepeatedField<::std::string::String>,
+    pub id: ::bytes::Bytes,
+    pub name: ::protobuf::Chars,
+    pub addresses: ::std::vec::Vec<::protobuf::Chars>,
     pub compression: Compression,
-    pub cert_name: ::std::string::String,
+    pub cert_name: ::protobuf::Chars,
     pub max_sequence: i64,
     pub introducer: bool,
     pub index_id: u64,
     pub skip_introduction_removals: bool,
-    pub encryption_password_token: ::std::vec::Vec<u8>,
+    pub encryption_password_token: ::bytes::Bytes,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
     pub cached_size: ::protobuf::CachedSize,
@@ -1076,19 +1076,19 @@ impl Device {
     }
 
     // Param is passed by value, moved
-    pub fn set_id(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_id(&mut self, v: ::bytes::Bytes) {
         self.id = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_id(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_id(&mut self) -> &mut ::bytes::Bytes {
         &mut self.id
     }
 
     // Take field
-    pub fn take_id(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.id, ::std::vec::Vec::new())
+    pub fn take_id(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.id, ::bytes::Bytes::new())
     }
 
     // string name = 2;
@@ -1098,29 +1098,29 @@ impl Device {
         &self.name
     }
     pub fn clear_name(&mut self) {
-        self.name.clear();
+        ::protobuf::Clear::clear(&mut self.name);
     }
 
     // Param is passed by value, moved
-    pub fn set_name(&mut self, v: ::std::string::String) {
+    pub fn set_name(&mut self, v: ::protobuf::Chars) {
         self.name = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_name(&mut self) -> &mut ::std::string::String {
+    pub fn mut_name(&mut self) -> &mut ::protobuf::Chars {
         &mut self.name
     }
 
     // Take field
-    pub fn take_name(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.name, ::std::string::String::new())
+    pub fn take_name(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.name, ::protobuf::Chars::new())
     }
 
     // repeated string addresses = 3;
 
 
-    pub fn get_addresses(&self) -> &[::std::string::String] {
+    pub fn get_addresses(&self) -> &[::protobuf::Chars] {
         &self.addresses
     }
     pub fn clear_addresses(&mut self) {
@@ -1128,18 +1128,18 @@ impl Device {
     }
 
     // Param is passed by value, moved
-    pub fn set_addresses(&mut self, v: ::protobuf::RepeatedField<::std::string::String>) {
+    pub fn set_addresses(&mut self, v: ::std::vec::Vec<::protobuf::Chars>) {
         self.addresses = v;
     }
 
     // Mutable pointer to the field.
-    pub fn mut_addresses(&mut self) -> &mut ::protobuf::RepeatedField<::std::string::String> {
+    pub fn mut_addresses(&mut self) -> &mut ::std::vec::Vec<::protobuf::Chars> {
         &mut self.addresses
     }
 
     // Take field
-    pub fn take_addresses(&mut self) -> ::protobuf::RepeatedField<::std::string::String> {
-        ::std::mem::replace(&mut self.addresses, ::protobuf::RepeatedField::new())
+    pub fn take_addresses(&mut self) -> ::std::vec::Vec<::protobuf::Chars> {
+        ::std::mem::replace(&mut self.addresses, ::std::vec::Vec::new())
     }
 
     // .protocol.Compression compression = 4;
@@ -1164,23 +1164,23 @@ impl Device {
         &self.cert_name
     }
     pub fn clear_cert_name(&mut self) {
-        self.cert_name.clear();
+        ::protobuf::Clear::clear(&mut self.cert_name);
     }
 
     // Param is passed by value, moved
-    pub fn set_cert_name(&mut self, v: ::std::string::String) {
+    pub fn set_cert_name(&mut self, v: ::protobuf::Chars) {
         self.cert_name = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_cert_name(&mut self) -> &mut ::std::string::String {
+    pub fn mut_cert_name(&mut self) -> &mut ::protobuf::Chars {
         &mut self.cert_name
     }
 
     // Take field
-    pub fn take_cert_name(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.cert_name, ::std::string::String::new())
+    pub fn take_cert_name(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.cert_name, ::protobuf::Chars::new())
     }
 
     // int64 max_sequence = 6;
@@ -1254,19 +1254,19 @@ impl Device {
     }
 
     // Param is passed by value, moved
-    pub fn set_encryption_password_token(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_encryption_password_token(&mut self, v: ::bytes::Bytes) {
         self.encryption_password_token = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_encryption_password_token(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_encryption_password_token(&mut self) -> &mut ::bytes::Bytes {
         &mut self.encryption_password_token
     }
 
     // Take field
-    pub fn take_encryption_password_token(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.encryption_password_token, ::std::vec::Vec::new())
+    pub fn take_encryption_password_token(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.encryption_password_token, ::bytes::Bytes::new())
     }
 }
 
@@ -1280,19 +1280,19 @@ impl ::protobuf::Message for Device {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.id)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.id)?;
                 },
                 2 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.name)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.name)?;
                 },
                 3 => {
-                    ::protobuf::rt::read_repeated_string_into(wire_type, is, &mut self.addresses)?;
+                    ::protobuf::rt::read_repeated_carllerche_string_into(wire_type, is, &mut self.addresses)?;
                 },
                 4 => {
                     ::protobuf::rt::read_proto3_enum_with_unknown_fields_into(wire_type, is, &mut self.compression, 4, &mut self.unknown_fields)?
                 },
                 5 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.cert_name)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.cert_name)?;
                 },
                 6 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
@@ -1323,7 +1323,7 @@ impl ::protobuf::Message for Device {
                     self.skip_introduction_removals = tmp;
                 },
                 10 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.encryption_password_token)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.encryption_password_token)?;
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -1441,17 +1441,17 @@ impl ::protobuf::Message for Device {
         static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
         descriptor.get(|| {
             let mut fields = ::std::vec::Vec::new();
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                 "id",
                 |m: &Device| { &m.id },
                 |m: &mut Device| { &mut m.id },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "name",
                 |m: &Device| { &m.name },
                 |m: &mut Device| { &mut m.name },
             ));
-            fields.push(::protobuf::reflect::accessor::make_repeated_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_vec_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "addresses",
                 |m: &Device| { &m.addresses },
                 |m: &mut Device| { &mut m.addresses },
@@ -1461,7 +1461,7 @@ impl ::protobuf::Message for Device {
                 |m: &Device| { &m.compression },
                 |m: &mut Device| { &mut m.compression },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "cert_name",
                 |m: &Device| { &m.cert_name },
                 |m: &mut Device| { &mut m.cert_name },
@@ -1486,7 +1486,7 @@ impl ::protobuf::Message for Device {
                 |m: &Device| { &m.skip_introduction_removals },
                 |m: &mut Device| { &mut m.skip_introduction_removals },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                 "encryption_password_token",
                 |m: &Device| { &m.encryption_password_token },
                 |m: &mut Device| { &mut m.encryption_password_token },
@@ -1508,10 +1508,10 @@ impl ::protobuf::Message for Device {
 impl ::protobuf::Clear for Device {
     fn clear(&mut self) {
         self.id.clear();
-        self.name.clear();
+        ::protobuf::Clear::clear(&mut self.name);
         self.addresses.clear();
         self.compression = Compression::COMPRESSION_METADATA;
-        self.cert_name.clear();
+        ::protobuf::Clear::clear(&mut self.cert_name);
         self.max_sequence = 0;
         self.introducer = false;
         self.index_id = 0;
@@ -1536,7 +1536,7 @@ impl ::protobuf::reflect::ProtobufValue for Device {
 #[derive(PartialEq,Clone,Default)]
 pub struct Index {
     // message fields
-    pub folder: ::std::string::String,
+    pub folder: ::protobuf::Chars,
     pub files: ::protobuf::RepeatedField<FileInfo>,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
@@ -1561,23 +1561,23 @@ impl Index {
         &self.folder
     }
     pub fn clear_folder(&mut self) {
-        self.folder.clear();
+        ::protobuf::Clear::clear(&mut self.folder);
     }
 
     // Param is passed by value, moved
-    pub fn set_folder(&mut self, v: ::std::string::String) {
+    pub fn set_folder(&mut self, v: ::protobuf::Chars) {
         self.folder = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_folder(&mut self) -> &mut ::std::string::String {
+    pub fn mut_folder(&mut self) -> &mut ::protobuf::Chars {
         &mut self.folder
     }
 
     // Take field
-    pub fn take_folder(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.folder, ::std::string::String::new())
+    pub fn take_folder(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.folder, ::protobuf::Chars::new())
     }
 
     // repeated .protocol.FileInfo files = 2;
@@ -1621,7 +1621,7 @@ impl ::protobuf::Message for Index {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.folder)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.folder)?;
                 },
                 2 => {
                     ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.files)?;
@@ -1697,7 +1697,7 @@ impl ::protobuf::Message for Index {
         static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
         descriptor.get(|| {
             let mut fields = ::std::vec::Vec::new();
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "folder",
                 |m: &Index| { &m.folder },
                 |m: &mut Index| { &mut m.folder },
@@ -1723,7 +1723,7 @@ impl ::protobuf::Message for Index {
 
 impl ::protobuf::Clear for Index {
     fn clear(&mut self) {
-        self.folder.clear();
+        ::protobuf::Clear::clear(&mut self.folder);
         self.files.clear();
         self.unknown_fields.clear();
     }
@@ -1744,7 +1744,7 @@ impl ::protobuf::reflect::ProtobufValue for Index {
 #[derive(PartialEq,Clone,Default)]
 pub struct IndexUpdate {
     // message fields
-    pub folder: ::std::string::String,
+    pub folder: ::protobuf::Chars,
     pub files: ::protobuf::RepeatedField<FileInfo>,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
@@ -1769,23 +1769,23 @@ impl IndexUpdate {
         &self.folder
     }
     pub fn clear_folder(&mut self) {
-        self.folder.clear();
+        ::protobuf::Clear::clear(&mut self.folder);
     }
 
     // Param is passed by value, moved
-    pub fn set_folder(&mut self, v: ::std::string::String) {
+    pub fn set_folder(&mut self, v: ::protobuf::Chars) {
         self.folder = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_folder(&mut self) -> &mut ::std::string::String {
+    pub fn mut_folder(&mut self) -> &mut ::protobuf::Chars {
         &mut self.folder
     }
 
     // Take field
-    pub fn take_folder(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.folder, ::std::string::String::new())
+    pub fn take_folder(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.folder, ::protobuf::Chars::new())
     }
 
     // repeated .protocol.FileInfo files = 2;
@@ -1829,7 +1829,7 @@ impl ::protobuf::Message for IndexUpdate {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.folder)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.folder)?;
                 },
                 2 => {
                     ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.files)?;
@@ -1905,7 +1905,7 @@ impl ::protobuf::Message for IndexUpdate {
         static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
         descriptor.get(|| {
             let mut fields = ::std::vec::Vec::new();
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "folder",
                 |m: &IndexUpdate| { &m.folder },
                 |m: &mut IndexUpdate| { &mut m.folder },
@@ -1931,7 +1931,7 @@ impl ::protobuf::Message for IndexUpdate {
 
 impl ::protobuf::Clear for IndexUpdate {
     fn clear(&mut self) {
-        self.folder.clear();
+        ::protobuf::Clear::clear(&mut self.folder);
         self.files.clear();
         self.unknown_fields.clear();
     }
@@ -1952,22 +1952,22 @@ impl ::protobuf::reflect::ProtobufValue for IndexUpdate {
 #[derive(PartialEq,Clone,Default)]
 pub struct FileInfo {
     // message fields
-    pub name: ::std::string::String,
+    pub name: ::protobuf::Chars,
     pub size: i64,
     pub modified_s: i64,
     pub modified_by: u64,
     pub version: ::protobuf::SingularPtrField<Vector>,
     pub sequence: i64,
     pub blocks: ::protobuf::RepeatedField<BlockInfo>,
-    pub symlink_target: ::std::string::String,
-    pub blocks_hash: ::std::vec::Vec<u8>,
-    pub encrypted: ::std::vec::Vec<u8>,
+    pub symlink_target: ::protobuf::Chars,
+    pub blocks_hash: ::bytes::Bytes,
+    pub encrypted: ::bytes::Bytes,
     pub field_type: FileInfoType,
     pub permissions: u32,
     pub modified_ns: i32,
     pub block_size: i32,
     pub local_flags: u32,
-    pub version_hash: ::std::vec::Vec<u8>,
+    pub version_hash: ::bytes::Bytes,
     pub deleted: bool,
     pub invalid: bool,
     pub no_permissions: bool,
@@ -1994,23 +1994,23 @@ impl FileInfo {
         &self.name
     }
     pub fn clear_name(&mut self) {
-        self.name.clear();
+        ::protobuf::Clear::clear(&mut self.name);
     }
 
     // Param is passed by value, moved
-    pub fn set_name(&mut self, v: ::std::string::String) {
+    pub fn set_name(&mut self, v: ::protobuf::Chars) {
         self.name = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_name(&mut self) -> &mut ::std::string::String {
+    pub fn mut_name(&mut self) -> &mut ::protobuf::Chars {
         &mut self.name
     }
 
     // Take field
-    pub fn take_name(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.name, ::std::string::String::new())
+    pub fn take_name(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.name, ::protobuf::Chars::new())
     }
 
     // int64 size = 3;
@@ -2138,23 +2138,23 @@ impl FileInfo {
         &self.symlink_target
     }
     pub fn clear_symlink_target(&mut self) {
-        self.symlink_target.clear();
+        ::protobuf::Clear::clear(&mut self.symlink_target);
     }
 
     // Param is passed by value, moved
-    pub fn set_symlink_target(&mut self, v: ::std::string::String) {
+    pub fn set_symlink_target(&mut self, v: ::protobuf::Chars) {
         self.symlink_target = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_symlink_target(&mut self) -> &mut ::std::string::String {
+    pub fn mut_symlink_target(&mut self) -> &mut ::protobuf::Chars {
         &mut self.symlink_target
     }
 
     // Take field
-    pub fn take_symlink_target(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.symlink_target, ::std::string::String::new())
+    pub fn take_symlink_target(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.symlink_target, ::protobuf::Chars::new())
     }
 
     // bytes blocks_hash = 18;
@@ -2168,19 +2168,19 @@ impl FileInfo {
     }
 
     // Param is passed by value, moved
-    pub fn set_blocks_hash(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_blocks_hash(&mut self, v: ::bytes::Bytes) {
         self.blocks_hash = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_blocks_hash(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_blocks_hash(&mut self) -> &mut ::bytes::Bytes {
         &mut self.blocks_hash
     }
 
     // Take field
-    pub fn take_blocks_hash(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.blocks_hash, ::std::vec::Vec::new())
+    pub fn take_blocks_hash(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.blocks_hash, ::bytes::Bytes::new())
     }
 
     // bytes encrypted = 19;
@@ -2194,19 +2194,19 @@ impl FileInfo {
     }
 
     // Param is passed by value, moved
-    pub fn set_encrypted(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_encrypted(&mut self, v: ::bytes::Bytes) {
         self.encrypted = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_encrypted(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_encrypted(&mut self) -> &mut ::bytes::Bytes {
         &mut self.encrypted
     }
 
     // Take field
-    pub fn take_encrypted(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.encrypted, ::std::vec::Vec::new())
+    pub fn take_encrypted(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.encrypted, ::bytes::Bytes::new())
     }
 
     // .protocol.FileInfoType type = 2;
@@ -2295,19 +2295,19 @@ impl FileInfo {
     }
 
     // Param is passed by value, moved
-    pub fn set_version_hash(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_version_hash(&mut self, v: ::bytes::Bytes) {
         self.version_hash = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_version_hash(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_version_hash(&mut self) -> &mut ::bytes::Bytes {
         &mut self.version_hash
     }
 
     // Take field
-    pub fn take_version_hash(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.version_hash, ::std::vec::Vec::new())
+    pub fn take_version_hash(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.version_hash, ::bytes::Bytes::new())
     }
 
     // bool deleted = 6;
@@ -2376,7 +2376,7 @@ impl ::protobuf::Message for FileInfo {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.name)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.name)?;
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
@@ -2413,13 +2413,13 @@ impl ::protobuf::Message for FileInfo {
                     ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.blocks)?;
                 },
                 17 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.symlink_target)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.symlink_target)?;
                 },
                 18 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.blocks_hash)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.blocks_hash)?;
                 },
                 19 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.encrypted)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.encrypted)?;
                 },
                 2 => {
                     ::protobuf::rt::read_proto3_enum_with_unknown_fields_into(wire_type, is, &mut self.field_type, 2, &mut self.unknown_fields)?
@@ -2453,7 +2453,7 @@ impl ::protobuf::Message for FileInfo {
                     self.local_flags = tmp;
                 },
                 1001 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.version_hash)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.version_hash)?;
                 },
                 6 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
@@ -2652,7 +2652,7 @@ impl ::protobuf::Message for FileInfo {
         static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
         descriptor.get(|| {
             let mut fields = ::std::vec::Vec::new();
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "name",
                 |m: &FileInfo| { &m.name },
                 |m: &mut FileInfo| { &mut m.name },
@@ -2687,17 +2687,17 @@ impl ::protobuf::Message for FileInfo {
                 |m: &FileInfo| { &m.blocks },
                 |m: &mut FileInfo| { &mut m.blocks },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "symlink_target",
                 |m: &FileInfo| { &m.symlink_target },
                 |m: &mut FileInfo| { &mut m.symlink_target },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                 "blocks_hash",
                 |m: &FileInfo| { &m.blocks_hash },
                 |m: &mut FileInfo| { &mut m.blocks_hash },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                 "encrypted",
                 |m: &FileInfo| { &m.encrypted },
                 |m: &mut FileInfo| { &mut m.encrypted },
@@ -2727,7 +2727,7 @@ impl ::protobuf::Message for FileInfo {
                 |m: &FileInfo| { &m.local_flags },
                 |m: &mut FileInfo| { &mut m.local_flags },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                 "version_hash",
                 |m: &FileInfo| { &m.version_hash },
                 |m: &mut FileInfo| { &mut m.version_hash },
@@ -2763,14 +2763,14 @@ impl ::protobuf::Message for FileInfo {
 
 impl ::protobuf::Clear for FileInfo {
     fn clear(&mut self) {
-        self.name.clear();
+        ::protobuf::Clear::clear(&mut self.name);
         self.size = 0;
         self.modified_s = 0;
         self.modified_by = 0;
         self.version.clear();
         self.sequence = 0;
         self.blocks.clear();
-        self.symlink_target.clear();
+        ::protobuf::Clear::clear(&mut self.symlink_target);
         self.blocks_hash.clear();
         self.encrypted.clear();
         self.field_type = FileInfoType::FILE_INFO_TYPE_FILE;
@@ -2801,7 +2801,7 @@ impl ::protobuf::reflect::ProtobufValue for FileInfo {
 #[derive(PartialEq,Clone,Default)]
 pub struct BlockInfo {
     // message fields
-    pub hash: ::std::vec::Vec<u8>,
+    pub hash: ::bytes::Bytes,
     pub offset: i64,
     pub size: i32,
     pub weak_hash: u32,
@@ -2832,19 +2832,19 @@ impl BlockInfo {
     }
 
     // Param is passed by value, moved
-    pub fn set_hash(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_hash(&mut self, v: ::bytes::Bytes) {
         self.hash = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_hash(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_hash(&mut self) -> &mut ::bytes::Bytes {
         &mut self.hash
     }
 
     // Take field
-    pub fn take_hash(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.hash, ::std::vec::Vec::new())
+    pub fn take_hash(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.hash, ::bytes::Bytes::new())
     }
 
     // int64 offset = 1;
@@ -2903,7 +2903,7 @@ impl ::protobuf::Message for BlockInfo {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 3 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.hash)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.hash)?;
                 },
                 1 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
@@ -3006,7 +3006,7 @@ impl ::protobuf::Message for BlockInfo {
         static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
         descriptor.get(|| {
             let mut fields = ::std::vec::Vec::new();
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                 "hash",
                 |m: &BlockInfo| { &m.hash },
                 |m: &mut BlockInfo| { &mut m.hash },
@@ -3419,11 +3419,11 @@ impl ::protobuf::reflect::ProtobufValue for Counter {
 pub struct Request {
     // message fields
     pub id: i32,
-    pub folder: ::std::string::String,
-    pub name: ::std::string::String,
+    pub folder: ::protobuf::Chars,
+    pub name: ::protobuf::Chars,
     pub offset: i64,
     pub size: i32,
-    pub hash: ::std::vec::Vec<u8>,
+    pub hash: ::bytes::Bytes,
     pub from_temporary: bool,
     pub weak_hash: u32,
     pub block_no: i32,
@@ -3465,23 +3465,23 @@ impl Request {
         &self.folder
     }
     pub fn clear_folder(&mut self) {
-        self.folder.clear();
+        ::protobuf::Clear::clear(&mut self.folder);
     }
 
     // Param is passed by value, moved
-    pub fn set_folder(&mut self, v: ::std::string::String) {
+    pub fn set_folder(&mut self, v: ::protobuf::Chars) {
         self.folder = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_folder(&mut self) -> &mut ::std::string::String {
+    pub fn mut_folder(&mut self) -> &mut ::protobuf::Chars {
         &mut self.folder
     }
 
     // Take field
-    pub fn take_folder(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.folder, ::std::string::String::new())
+    pub fn take_folder(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.folder, ::protobuf::Chars::new())
     }
 
     // string name = 3;
@@ -3491,23 +3491,23 @@ impl Request {
         &self.name
     }
     pub fn clear_name(&mut self) {
-        self.name.clear();
+        ::protobuf::Clear::clear(&mut self.name);
     }
 
     // Param is passed by value, moved
-    pub fn set_name(&mut self, v: ::std::string::String) {
+    pub fn set_name(&mut self, v: ::protobuf::Chars) {
         self.name = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_name(&mut self) -> &mut ::std::string::String {
+    pub fn mut_name(&mut self) -> &mut ::protobuf::Chars {
         &mut self.name
     }
 
     // Take field
-    pub fn take_name(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.name, ::std::string::String::new())
+    pub fn take_name(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.name, ::protobuf::Chars::new())
     }
 
     // int64 offset = 4;
@@ -3551,19 +3551,19 @@ impl Request {
     }
 
     // Param is passed by value, moved
-    pub fn set_hash(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_hash(&mut self, v: ::bytes::Bytes) {
         self.hash = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_hash(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_hash(&mut self) -> &mut ::bytes::Bytes {
         &mut self.hash
     }
 
     // Take field
-    pub fn take_hash(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.hash, ::std::vec::Vec::new())
+    pub fn take_hash(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.hash, ::bytes::Bytes::new())
     }
 
     // bool from_temporary = 7;
@@ -3629,10 +3629,10 @@ impl ::protobuf::Message for Request {
                     self.id = tmp;
                 },
                 2 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.folder)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.folder)?;
                 },
                 3 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.name)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.name)?;
                 },
                 4 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
@@ -3649,7 +3649,7 @@ impl ::protobuf::Message for Request {
                     self.size = tmp;
                 },
                 6 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.hash)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.hash)?;
                 },
                 7 => {
                     if wire_type != ::protobuf::wire_format::WireTypeVarint {
@@ -3787,12 +3787,12 @@ impl ::protobuf::Message for Request {
                 |m: &Request| { &m.id },
                 |m: &mut Request| { &mut m.id },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "folder",
                 |m: &Request| { &m.folder },
                 |m: &mut Request| { &mut m.folder },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "name",
                 |m: &Request| { &m.name },
                 |m: &mut Request| { &mut m.name },
@@ -3807,7 +3807,7 @@ impl ::protobuf::Message for Request {
                 |m: &Request| { &m.size },
                 |m: &mut Request| { &mut m.size },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                 "hash",
                 |m: &Request| { &m.hash },
                 |m: &mut Request| { &mut m.hash },
@@ -3844,8 +3844,8 @@ impl ::protobuf::Message for Request {
 impl ::protobuf::Clear for Request {
     fn clear(&mut self) {
         self.id = 0;
-        self.folder.clear();
-        self.name.clear();
+        ::protobuf::Clear::clear(&mut self.folder);
+        ::protobuf::Clear::clear(&mut self.name);
         self.offset = 0;
         self.size = 0;
         self.hash.clear();
@@ -3872,7 +3872,7 @@ impl ::protobuf::reflect::ProtobufValue for Request {
 pub struct Response {
     // message fields
     pub id: i32,
-    pub data: ::std::vec::Vec<u8>,
+    pub data: ::bytes::Bytes,
     pub code: ErrorCode,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
@@ -3916,19 +3916,19 @@ impl Response {
     }
 
     // Param is passed by value, moved
-    pub fn set_data(&mut self, v: ::std::vec::Vec<u8>) {
+    pub fn set_data(&mut self, v: ::bytes::Bytes) {
         self.data = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_data(&mut self) -> &mut ::std::vec::Vec<u8> {
+    pub fn mut_data(&mut self) -> &mut ::bytes::Bytes {
         &mut self.data
     }
 
     // Take field
-    pub fn take_data(&mut self) -> ::std::vec::Vec<u8> {
-        ::std::mem::replace(&mut self.data, ::std::vec::Vec::new())
+    pub fn take_data(&mut self) -> ::bytes::Bytes {
+        ::std::mem::replace(&mut self.data, ::bytes::Bytes::new())
     }
 
     // .protocol.ErrorCode code = 3;
@@ -3964,7 +3964,7 @@ impl ::protobuf::Message for Response {
                     self.id = tmp;
                 },
                 2 => {
-                    ::protobuf::rt::read_singular_proto3_bytes_into(wire_type, is, &mut self.data)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_bytes_into(wire_type, is, &mut self.data)?;
                 },
                 3 => {
                     ::protobuf::rt::read_proto3_enum_with_unknown_fields_into(wire_type, is, &mut self.code, 3, &mut self.unknown_fields)?
@@ -4048,7 +4048,7 @@ impl ::protobuf::Message for Response {
                 |m: &Response| { &m.id },
                 |m: &mut Response| { &mut m.id },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeBytes>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheBytes>(
                 "data",
                 |m: &Response| { &m.data },
                 |m: &mut Response| { &mut m.data },
@@ -4096,7 +4096,7 @@ impl ::protobuf::reflect::ProtobufValue for Response {
 #[derive(PartialEq,Clone,Default)]
 pub struct DownloadProgress {
     // message fields
-    pub folder: ::std::string::String,
+    pub folder: ::protobuf::Chars,
     pub updates: ::protobuf::RepeatedField<FileDownloadProgressUpdate>,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
@@ -4121,23 +4121,23 @@ impl DownloadProgress {
         &self.folder
     }
     pub fn clear_folder(&mut self) {
-        self.folder.clear();
+        ::protobuf::Clear::clear(&mut self.folder);
     }
 
     // Param is passed by value, moved
-    pub fn set_folder(&mut self, v: ::std::string::String) {
+    pub fn set_folder(&mut self, v: ::protobuf::Chars) {
         self.folder = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_folder(&mut self) -> &mut ::std::string::String {
+    pub fn mut_folder(&mut self) -> &mut ::protobuf::Chars {
         &mut self.folder
     }
 
     // Take field
-    pub fn take_folder(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.folder, ::std::string::String::new())
+    pub fn take_folder(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.folder, ::protobuf::Chars::new())
     }
 
     // repeated .protocol.FileDownloadProgressUpdate updates = 2;
@@ -4181,7 +4181,7 @@ impl ::protobuf::Message for DownloadProgress {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.folder)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.folder)?;
                 },
                 2 => {
                     ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.updates)?;
@@ -4257,7 +4257,7 @@ impl ::protobuf::Message for DownloadProgress {
         static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
         descriptor.get(|| {
             let mut fields = ::std::vec::Vec::new();
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "folder",
                 |m: &DownloadProgress| { &m.folder },
                 |m: &mut DownloadProgress| { &mut m.folder },
@@ -4283,7 +4283,7 @@ impl ::protobuf::Message for DownloadProgress {
 
 impl ::protobuf::Clear for DownloadProgress {
     fn clear(&mut self) {
-        self.folder.clear();
+        ::protobuf::Clear::clear(&mut self.folder);
         self.updates.clear();
         self.unknown_fields.clear();
     }
@@ -4305,7 +4305,7 @@ impl ::protobuf::reflect::ProtobufValue for DownloadProgress {
 pub struct FileDownloadProgressUpdate {
     // message fields
     pub update_type: FileDownloadProgressUpdateType,
-    pub name: ::std::string::String,
+    pub name: ::protobuf::Chars,
     pub version: ::protobuf::SingularPtrField<Vector>,
     pub block_indexes: ::std::vec::Vec<i32>,
     pub block_size: i32,
@@ -4347,23 +4347,23 @@ impl FileDownloadProgressUpdate {
         &self.name
     }
     pub fn clear_name(&mut self) {
-        self.name.clear();
+        ::protobuf::Clear::clear(&mut self.name);
     }
 
     // Param is passed by value, moved
-    pub fn set_name(&mut self, v: ::std::string::String) {
+    pub fn set_name(&mut self, v: ::protobuf::Chars) {
         self.name = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_name(&mut self) -> &mut ::std::string::String {
+    pub fn mut_name(&mut self) -> &mut ::protobuf::Chars {
         &mut self.name
     }
 
     // Take field
-    pub fn take_name(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.name, ::std::string::String::new())
+    pub fn take_name(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.name, ::protobuf::Chars::new())
     }
 
     // .protocol.Vector version = 3;
@@ -4458,7 +4458,7 @@ impl ::protobuf::Message for FileDownloadProgressUpdate {
                     ::protobuf::rt::read_proto3_enum_with_unknown_fields_into(wire_type, is, &mut self.update_type, 1, &mut self.unknown_fields)?
                 },
                 2 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.name)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.name)?;
                 },
                 3 => {
                     ::protobuf::rt::read_singular_message_into(wire_type, is, &mut self.version)?;
@@ -4567,7 +4567,7 @@ impl ::protobuf::Message for FileDownloadProgressUpdate {
                 |m: &FileDownloadProgressUpdate| { &m.update_type },
                 |m: &mut FileDownloadProgressUpdate| { &mut m.update_type },
             ));
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "name",
                 |m: &FileDownloadProgressUpdate| { &m.name },
                 |m: &mut FileDownloadProgressUpdate| { &mut m.name },
@@ -4604,7 +4604,7 @@ impl ::protobuf::Message for FileDownloadProgressUpdate {
 impl ::protobuf::Clear for FileDownloadProgressUpdate {
     fn clear(&mut self) {
         self.update_type = FileDownloadProgressUpdateType::FILE_DOWNLOAD_PROGRESS_UPDATE_TYPE_APPEND;
-        self.name.clear();
+        ::protobuf::Clear::clear(&mut self.name);
         self.version.clear();
         self.block_indexes.clear();
         self.block_size = 0;
@@ -4743,7 +4743,7 @@ impl ::protobuf::reflect::ProtobufValue for Ping {
 #[derive(PartialEq,Clone,Default)]
 pub struct Close {
     // message fields
-    pub reason: ::std::string::String,
+    pub reason: ::protobuf::Chars,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
     pub cached_size: ::protobuf::CachedSize,
@@ -4767,23 +4767,23 @@ impl Close {
         &self.reason
     }
     pub fn clear_reason(&mut self) {
-        self.reason.clear();
+        ::protobuf::Clear::clear(&mut self.reason);
     }
 
     // Param is passed by value, moved
-    pub fn set_reason(&mut self, v: ::std::string::String) {
+    pub fn set_reason(&mut self, v: ::protobuf::Chars) {
         self.reason = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_reason(&mut self) -> &mut ::std::string::String {
+    pub fn mut_reason(&mut self) -> &mut ::protobuf::Chars {
         &mut self.reason
     }
 
     // Take field
-    pub fn take_reason(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.reason, ::std::string::String::new())
+    pub fn take_reason(&mut self) -> ::protobuf::Chars {
+        ::std::mem::replace(&mut self.reason, ::protobuf::Chars::new())
     }
 }
 
@@ -4797,7 +4797,7 @@ impl ::protobuf::Message for Close {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.reason)?;
+                    ::protobuf::rt::read_singular_proto3_carllerche_string_into(wire_type, is, &mut self.reason)?;
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -4861,7 +4861,7 @@ impl ::protobuf::Message for Close {
         static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
         descriptor.get(|| {
             let mut fields = ::std::vec::Vec::new();
-            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeCarllercheChars>(
                 "reason",
                 |m: &Close| { &m.reason },
                 |m: &mut Close| { &mut m.reason },
@@ -4882,7 +4882,7 @@ impl ::protobuf::Message for Close {
 
 impl ::protobuf::Clear for Close {
     fn clear(&mut self) {
-        self.reason.clear();
+        ::protobuf::Clear::clear(&mut self.reason);
         self.unknown_fields.clear();
     }
 }
@@ -5251,7 +5251,7 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x18\x06\x20\x01(\x08R\x12disableTempIndexes\x12\x16\n\x06paused\x18\x07\
     \x20\x01(\x08R\x06paused\x12*\n\x07devices\x18\x10\x20\x03(\x0b2\x10.pro\
     tocol.DeviceR\x07devices\"\x9c\x03\n\x06Device\x12\x1a\n\x02id\x18\x01\
-    \x20\x01(\x0cR\x02idB\n\x92\xd0$\x02ID\x88\xd0$\x01\x12\x12\n\x04name\
+    \x20\x01(\x0cR\x02idB\n\x88\xd0$\x01\x92\xd0$\x02ID\x12\x12\n\x04name\
     \x18\x02\x20\x01(\tR\x04name\x12\x1c\n\taddresses\x18\x03\x20\x03(\tR\ta\
     ddresses\x127\n\x0bcompression\x18\x04\x20\x01(\x0e2\x15.protocol.Compre\
     ssionR\x0bcompression\x12\x1b\n\tcert_name\x18\x05\x20\x01(\tR\x08certNa\

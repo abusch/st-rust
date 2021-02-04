@@ -2,6 +2,7 @@
 use std::{convert::TryInto, fmt::Display};
 
 use anyhow::Result;
+use bytes::Bytes;
 use data_encoding::BASE32_NOPAD;
 use ring::digest::{digest, Digest, SHA256};
 
@@ -24,8 +25,8 @@ impl DeviceId {
         )
     }
 
-    pub fn to_vec(&self) -> Vec<u8> {
-        self.0.to_vec()
+    pub fn to_bytes(&self) -> Bytes {
+        Bytes::copy_from_slice(&self.0[..])
     }
 }
 

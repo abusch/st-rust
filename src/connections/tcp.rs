@@ -72,9 +72,9 @@ async fn process_tcp_request(
 
         // Send our own Hello back
         let mut reply = Hello::default();
-        reply.set_device_name("calculon".to_string());
-        reply.set_client_name("st-rust".to_string());
-        reply.set_client_version("0.1".to_string());
+        reply.set_device_name("calculon".into());
+        reply.set_client_name("st-rust".into());
+        reply.set_client_version("0.1".into());
 
         buf.clear();
         std::io::Write::write(&mut buf, MAGIC)?;

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use tokio::signal::ctrl_c;
 use tracing::{error, info};
 use tracing_subscriber;
 
@@ -9,7 +10,7 @@ mod protos;
 mod tls;
 
 use connections::tcp::tcp_listener;
-use discover::local::{local_announce, local_udp_listener};
+use discover::local;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -26,15 +27,21 @@ async fn main() -> Result<()> {
 
     let config = tls::tls_config(certs, keys.remove(0))?;
 
-    let handle = tokio::spawn(async move { local_announce(device_id).await.unwrap() });
-    let handle2 = tokio::spawn(async move { local_udp_listener().await.unwrap() });
-    let handle3 = tokio::spawn(async move { tcp_listener(config).await.unwrap() });
-
-    match tokio::try_join!(handle, handle2, handle3) {
-        Ok(_) => Ok(()),
-        Err(err) => {
-            error!("Error: {}", err);
-            Ok(())
+    tokio::select! {
+        res = local::local_discovery(device_id) => {
+            if let Err(err) = res {
+                error!(cause = %err, "failed to accept");
+            }
+        }
+        res = tcp_listener(config) => {
+            if let Err(err) = res {
+                error!(cause = %err, "failed to accept");
+            }
+        }
+        _ = ctrl_c() => {
+            info!("Shutting down...");
         }
     }
+
+    Ok(())
 }
