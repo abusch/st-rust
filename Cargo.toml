@@ -7,19 +7,20 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = {version="1.1.0", features=["full"]}
+tokio = { version = "1.2.0", features = ["full"] }
 anyhow = "1.0.38"
 bytes = "1.0.1"
 byteorder = "1.4.2"
-protobuf = { version = "2", features = ["with-bytes"] }
-ring = "0.16.19"
+protobuf = { version = "2.22.0", features = ["with-bytes"] }
+ring = "0.16.20"
 data-encoding = "2.3.1"
 pem = "0.8.2"
 fastrand = "1.4.0"
 rustls = {version="0.19.0", features=["logging", "dangerous_configuration"]}
 tokio-rustls = "0.22.0"
-tracing = "0.1.22"
+tracing = "0.1.23"
 tracing-subscriber = "0.2.15"
+url = "2.2.0"
 
 [build-dependencies]
-protoc-rust = "2.20.0"
+protoc-rust = "2.22.0"

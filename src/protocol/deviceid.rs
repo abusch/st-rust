@@ -6,7 +6,7 @@ use bytes::Bytes;
 use data_encoding::BASE32_NOPAD;
 use ring::digest::{digest, Digest, SHA256};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DeviceId([u8; 32]);
 
 impl DeviceId {

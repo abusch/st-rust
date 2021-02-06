@@ -21,11 +21,11 @@ async fn main() -> Result<()> {
     info!("Loaded {} certificates", certs.len());
     let mut keys = tls::load_keys("key.pem")?;
     info!("Loaded {} keys", keys.len());
-    let device_id = protocol::DeviceId::from_der_cert(certs[0].0.as_slice());
 
+    let device_id = protocol::DeviceId::from_der_cert(certs[0].0.as_slice());
     info!("DeviceId = {}", device_id);
 
-    let config = tls::tls_config(certs, keys.remove(0))?;
+    let tls_config = tls::tls_config(certs, keys.remove(0))?;
 
     tokio::select! {
         res = local::local_discovery(device_id) => {
@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
                 error!(cause = %err, "failed to accept");
             }
         }
-        res = tcp_listener(config) => {
+        res = tcp_listener(tls_config) => {
             if let Err(err) = res {
                 error!(cause = %err, "failed to accept");
             }
