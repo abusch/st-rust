@@ -8,7 +8,7 @@ use anyhow::{anyhow, Result};
 use bytes::BufMut;
 use protobuf::{Chars, Message};
 use tokio::{net::UdpSocket, sync::Mutex, time::sleep};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info, instrument, warn};
 use url::Url;
 
 use crate::{
@@ -68,6 +68,7 @@ impl LocalListener {
         }
     }
 
+    #[instrument(skip(self))]
     pub async fn local_udp_listener(&self) -> Result<()> {
         let mut buf = [0u8; 1024];
         let sock = UdpSocket::bind("0.0.0.0:21027").await?;

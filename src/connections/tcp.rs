@@ -1,93 +1,107 @@
-use std::net::SocketAddr;
 use std::sync::Arc;
+use std::{net::SocketAddr, time::Duration};
 
-use anyhow::{anyhow, Result};
-use protobuf::Message;
-use rustls::{ServerConfig, Session};
+use anyhow::Result;
+use rustls::ServerConfig;
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
+    sync::mpsc::Sender,
+    time,
 };
 use tokio_rustls::{server::TlsStream, TlsAcceptor};
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
-use crate::{
-    protocol::{DeviceId, MAGIC},
-    protos::Hello,
-};
+use super::InternalConn;
 
-pub async fn tcp_listener(config: ServerConfig) -> Result<()> {
-    let acceptor = TlsAcceptor::from(Arc::new(config));
+pub async fn tcp_listener(conns: Sender<InternalConn>, tls_config: ServerConfig) -> Result<()> {
     let socket = TcpListener::bind("0.0.0.0:22000").await?;
-    info!("Listening for TCP requests on port 22000");
-    loop {
-        match socket.accept().await {
-            Ok((stream, addr)) => {
-                let stream = acceptor.accept(stream).await?;
-                tokio::spawn(async move {
-                    match process_tcp_request(stream, addr).await {
-                        Ok(_) => info!("TCP connection successfully handled"),
-                        Err(e) => warn!("Failed to handle TCP connection: {}", e),
-                    }
-                });
-            }
-            Err(e) => error!("Error while accepting TCP connection: {}", e),
-        }
-    }
+    let mut listener = Listener::new(socket, conns, tls_config);
+
+    listener.run().await
 }
 
-async fn process_tcp_request(
-    mut stream: TlsStream<TcpStream>,
-    peer_addr: SocketAddr,
-) -> Result<()> {
-    info!("Got a TCP connection from {}", peer_addr);
-    let (_inner, session) = stream.get_ref();
-    if let Some(alpn) = session.get_alpn_protocol() {
-        let protocol = String::from_utf8_lossy(alpn);
-        info!("Negotiated protocol (ALPN): {}", protocol);
-    }
-    if let Some(proto_version) = session.get_protocol_version() {
-        info!("Protocol version = {:?}", proto_version);
-    }
-    if let Some(certs) = session.get_peer_certificates() {
-        info!("Got {} certificates from the peer", certs.len());
-        if !certs.is_empty() {
-            let peer_id = DeviceId::from_der_cert(&certs[0].0);
-            info!("Peer device id = {}", peer_id);
+struct Listener {
+    listener: TcpListener,
+    conn_tx: Sender<InternalConn>,
+    config: Arc<ServerConfig>,
+}
+
+impl Listener {
+    pub fn new(listener: TcpListener, conn_tx: Sender<InternalConn>, config: ServerConfig) -> Self {
+        Self {
+            listener,
+            conn_tx,
+            config: Arc::new(config),
         }
     }
-    let mut header = [0u8; 4];
-    stream.read_exact(&mut header).await?;
-    if &header[..] == MAGIC {
-        info!("Found magic header");
-        let len = stream.read_u16().await?;
-        if len > 32767 {
-            anyhow!("Hello message too big: {}", len);
+
+    pub async fn run(&mut self) -> Result<()> {
+        let acceptor = TlsAcceptor::from(self.config.clone());
+        info!("Listening for TCP requests on port 22000");
+        loop {
+            match self.accept().await {
+                Ok((stream, addr)) => {
+                    let stream = acceptor.accept(stream).await?;
+                    match self.process_tcp_request(stream, addr).await {
+                        Ok(_) => info!("TCP connection successfully handled"),
+                        Err(e) => warn!(cause = %e, "Failed to handle TCP connection"),
+                    }
+                }
+                Err(e) => error!(cause = %e, "Error while accepting TCP connection"),
+            }
         }
-        let mut buf = vec![0u8; len as usize];
-        stream.read_exact(&mut buf).await?;
-        info!("Read {} bytes", len);
-        let hello = Hello::parse_from_bytes(&buf)?;
-        info!("Got a Hello packet! {:?}", hello);
-
-        // Send our own Hello back
-        let mut reply = Hello::default();
-        reply.set_device_name("calculon".into());
-        reply.set_client_name("st-rust".into());
-        reply.set_client_version("0.1".into());
-
-        buf.clear();
-        std::io::Write::write(&mut buf, MAGIC)?;
-        let mut reply_bytes = reply.write_to_bytes()?;
-        let len = reply_bytes.len() as u16;
-        std::io::Write::write(&mut buf, &len.to_be_bytes())?;
-        buf.append(&mut reply_bytes);
-        info!("Sending Hello packet back: {:?}", reply);
-        stream.write_all(&buf).await?;
-        info!("Sent {} bytes back", buf.len());
-    } else {
-        warn!("Invalid magic number in header: {:?}", header);
     }
 
-    Ok(())
+    async fn process_tcp_request(
+        &self,
+        stream: TlsStream<TcpStream>,
+        peer_addr: SocketAddr,
+    ) -> Result<()> {
+        info!("Got a TCP connection from {}", peer_addr);
+
+        let (conn, session) = stream.get_ref();
+        // Set TCP options
+        conn.set_nodelay(false)?;
+        conn.set_linger(None)?;
+        // TODO keep-alive (doesn't to be supported in stdlib yet...)
+
+        let internal_conn = InternalConn::new(stream);
+        self.conn_tx.send(internal_conn).await?;
+
+        Ok(())
+    }
+
+    /// Accept an inbound connection.
+    ///
+    /// Errors are handled by backing off and retrying. An exponential backoff
+    /// strategy is used. After the first failure, the task waits for 1 second.
+    /// After the second failure, the task waits for 2 seconds. Each subsequent
+    /// failure doubles the wait time. If accepting fails on the 6th try after
+    /// waiting for 64 seconds, then this function returns with an error.
+    async fn accept(&mut self) -> Result<(TcpStream, SocketAddr)> {
+        let mut backoff = 1;
+
+        // Try to accept a few times
+        loop {
+            // Perform the accept operation. If a socket is successfully
+            // accepted, return it. Otherwise, save the error.
+            match self.listener.accept().await {
+                Ok((socket, addr)) => return Ok((socket, addr)),
+                Err(err) => {
+                    if backoff > 64 {
+                        // Accept has failed too many times. Return the error.
+                        return Err(err.into());
+                    }
+                }
+            }
+
+            // Pause execution until the back off period elapses.
+            debug!("Error while accepting. Sleeping for {} seconds.", backoff);
+
+            time::sleep(Duration::from_secs(backoff)).await;
+
+            // Double the back off
+            backoff *= 2;
+        }
+    }
 }

@@ -4,12 +4,12 @@ use tracing::{error, info};
 use tracing_subscriber;
 
 mod connections;
-mod protocol;
 mod discover;
+mod protocol;
 mod protos;
 mod tls;
 
-use connections::tcp::tcp_listener;
+use connections::connection_service;
 use discover::local;
 
 #[tokio::main]
@@ -33,9 +33,9 @@ async fn main() -> Result<()> {
                 error!(cause = %err, "failed to accept");
             }
         }
-        res = tcp_listener(tls_config) => {
+        res = connection_service(device_id, tls_config) => {
             if let Err(err) = res {
-                error!(cause = %err, "failed to accept");
+                error!(cause = %err, "Connection service failed");
             }
         }
         _ = ctrl_c() => {

@@ -8,9 +8,9 @@ fn main() {
         .inputs(&["protos/local.proto", "protos/bep.proto"])
         .include("protos")
         .customize(Customize {
-                carllerche_bytes_for_bytes: Some(true),
-                carllerche_bytes_for_string: Some(true),
-                ..Customize::default()
+            carllerche_bytes_for_bytes: Some(true),
+            carllerche_bytes_for_string: Some(true),
+            ..Customize::default()
         })
         .run()
         .expect("protoc");

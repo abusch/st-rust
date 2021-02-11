@@ -11,7 +11,10 @@ pub struct DeviceId([u8; 32]);
 
 impl DeviceId {
     pub fn new(id: &[u8]) -> Self {
-        DeviceId(id.try_into().expect("Invalid length slice length! Expecting 32."))
+        DeviceId(
+            id.try_into()
+                .expect("Invalid length slice length! Expecting 32."),
+        )
     }
 
     pub fn from_der_cert(cert: &[u8]) -> DeviceId {
@@ -36,7 +39,7 @@ impl Display for DeviceId {
         let luhnified =
             luhnify(&base32).expect("BASE32_NOPAD.encode() produced invalid characters!");
         let chunkified = chunkify(&luhnified);
-       write!(f, "{}", &chunkified)
+        write!(f, "{}", &chunkified)
     }
 }
 
