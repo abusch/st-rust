@@ -1,7 +1,8 @@
 #+TITLE: Syncthing in Rust
 #+STARTUP: overview
 
-Some notes about trying to understand how syncthing works by trying to implement parts of it in rust.
+Some notes about trying to understand how syncthing works by trying to implement
+parts of it in rust.
 
 * Next steps:
 :PROPERTIES:
@@ -17,21 +18,25 @@ Some notes about trying to understand how syncthing works by trying to implement
 * Syncthing stuff
 ** Keys and device ids
 *** key pair
-A key pair is generated the first time: private key + public key (stored as an X509 certificate). The key pair is used to do a TLS handshake with other peers.
+A key pair is generated the first time: private key + public key (stored as an
+X509 certificate). The key pair is used to do a TLS handshake with other peers.
 
 **** X509 certificates
 ***** PEM
-The keys are stored in PEM format (basically ascii-armored way to attach binary data): base64 data between delimiters:
+The keys are stored in PEM format (basically ascii-armored way to attach binary
+data): base64 data between delimiters:
 
-   #+begin_src
+#+begin_src
 -----BEGIN FOO-----
 <data goes here>
 -----END FOO-----
-   #+end_src
+#+end_src
 
-The binary data encoded in the PEM file is the certificate encoded with ASN.1 and serialized with DER.
+The binary data encoded in the PEM file is the certificate encoded with ASN.1
+and serialized with DER.
 ***** ASN.1
-ASN.1 defines a way to encode data in data structures i.e. defines a grammar for a set of types, with their fields.
+ASN.1 defines a way to encode data in data structures i.e. defines a grammar for
+a set of types, with their fields.
 
 The general structure of a certificate, encoded as ASN.1, is as follows:
 #+begin_src
@@ -90,8 +95,55 @@ The general structure of a certificate, encoded as ASN.1, is as follows:
 - [X] Use =tracing= for logging
 - Can =tokio-tower= be useful here?
 ** TLS stuff
-When connecting 2 peers, they each offer their certificates / key as part of the TLS handshake, but it does *not* do client authentication (as the certificates are self-signed). Unfortunately, =rustls= doesn't seem to support this scenario out of the box...
+When connecting 2 peers, they each offer their certificates / key as part of the
+TLS handshake, but it does *not* do client authentication (as the certificates
+are self-signed). Unfortunately, =rustls= doesn't seem to support this scenario
+out of the box...
 - =NoClientAuth= doesn't do client authentication, but doesn't request the peer certificate
 - =AllowAnyAuthenticatedClient= and =AllowAnyAnonymousOrAuthenticatedClient= do request the peer certificate, but try to validate it (and fail)
 
-The workaround was to implement a custom =ClientCertVerifier= that requests the peer certificate but doesn't do authentication (or rather, accepts everything...). It required enable the =dangerous_configuration= feature on the =rustls= crate to access the =ClientCertVerifier= trait.
+The workaround was to implement a custom =ClientCertVerifier= that requests the
+peer certificate but doesn't do authentication (or rather, accepts
+everything...). It required enable the =dangerous_configuration= feature on the
+=rustls= crate to access the =ClientCertVerifier= trait.
+** Lifecycle
+Not quite sure yet how to handle the lifecycle of all the pieces... When we get
+the ctrl-c and exit the =select!= block, we drop the different the services
+which should close the different sockets properly. We might need something more
+sophisticated to close all the open connections.
+** Connection handling
+In the =go= version, when a connection is "started", a bunch of goroutines are started:
+- one to listen for incoming TCP messages, deserialize them, and send them to an =inbox= channel
+- one to listen for outgoing messages on an =outbox= channel and send them on the wire to the peer
+- one to listen for incoming messages on the =inbox= channel and dispatch them to other services
+- One to listen to =ping= messages and timeout the connection if we haven't received one for more than x seconds
+- one that sends pings if we haven't sent a message for more than x seconds
+- one that listens on the =close= channel and closes the connection if needed
+
+This blog post https://ryhl.io/blog/actors-with-tokio/ should be very useful to structure the code.
+
+I tried applying the above principles and ended up with:
+- a =ConnectionReader= task: listens on the =Reader= half of the socket, deserializes incoming messages, and sends them on the inbox channel;
+- a =ConnectionDispatcher= task: pulls messages from the inbox, reacts to them, and optionally sends another message to the outbox;
+- a =ConnectionWriter= task: pulls messages from the outbox, serializes them and writes them to the =Writer= half of the socket;
+
+All these tasks are managed by a single =ConnectionHandle=.
+
+Still to be done:
+- [ ] a task to timeout the connection if no message has been received in the last x seconds
+- [ ] a task to send a =Ping= if no message has been sent in the last x seconds
+
+The problem is how to share that state (time of last received message, time of last sent message...)
+** Protobuf
+*** default values
+One thing that caught me by surprise: protobuf has a concept of _default values_
+and it optimizes away those values when sending a message over the wire.
+
+In the case of Syncthing messages, the first message sent after authentication
+is a =ConfigCluster= message. Its message type is =0= which is the default
+value, and if no compression is used, the compression type is also the default
+value. Similarly, if the cluster configuration doesn't have any folder, which is
+the default value. So both the header and the actual messages are effectively
+empty. All that is left are the header length and message length that are both 0
+i.e the entire packet consists of 6 null bytes: =0x000000=. This confused me for
+a while when I was debugging things...

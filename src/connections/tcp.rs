@@ -59,7 +59,7 @@ impl Listener {
     ) -> Result<()> {
         info!("Got a TCP connection from {}", peer_addr);
 
-        let (conn, session) = stream.get_ref();
+        let (conn, _session) = stream.get_ref();
         // Set TCP options
         conn.set_nodelay(false)?;
         conn.set_linger(None)?;

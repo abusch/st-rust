@@ -120,14 +120,12 @@ impl LocalListener {
             },
         );
 
-        let already_exists = old_value
+        old_value
             .map(|e| {
                 Instant::now().duration_since(e.when) < Self::CACHE_LIFE_TIME
                     && e.instance_id == announce.instance_id
             })
-            .unwrap_or(false);
-
-        already_exists
+            .unwrap_or(false)
     }
 
     async fn validate_address(&self, addr: String, src: &SocketAddr) -> Result<String> {

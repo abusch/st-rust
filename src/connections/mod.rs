@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::{anyhow, Result};
 use protobuf::Message;
 use rustls::{ServerConfig, Session};
@@ -11,7 +13,7 @@ use tokio_rustls::server::TlsStream;
 use tracing::{debug, error, info, warn};
 
 use crate::{
-    protocol::{DeviceId, MAGIC},
+    protocol::{connection::ConnectionHandle, DeviceId, MAGIC},
     protos::Hello,
 };
 
@@ -41,18 +43,23 @@ pub async fn connection_service(my_id: DeviceId, tls_config: ServerConfig) -> Re
 pub struct Service {
     my_id: DeviceId,
     conns: Receiver<InternalConn>,
+    connections: HashMap<DeviceId, ConnectionHandle>,
 }
 
 impl Service {
     pub fn new(my_id: DeviceId, conns: Receiver<InternalConn>) -> Self {
-        Self { my_id, conns }
+        Self {
+            my_id,
+            conns,
+            connections: HashMap::new(),
+        }
     }
 
     pub async fn handle(&mut self) -> Result<()> {
         loop {
             if let Some(internal_conn) = self.conns.recv().await {
                 let mut stream = internal_conn.conn;
-                let (conn, session) = stream.get_ref();
+                let (_conn, session) = stream.get_ref();
                 let remote_id = match self.validate_connection(session) {
                     Ok(device_id) => {
                         info!(remote_id = %device_id, "Connection is valid");
@@ -94,6 +101,10 @@ impl Service {
                     info!("Sending Hello packet back: {:?}", reply);
                     stream.write_all(&buf).await?;
                     info!("Sent {} bytes back", buf.len());
+
+                    debug!("Dispatching task to handle connection");
+                    let connection_handle = ConnectionHandle::new(stream);
+                    self.connections.insert(remote_id, connection_handle);
                 } else {
                     warn!("Invalid magic number in header: {:?}", header);
                 }
@@ -113,7 +124,7 @@ impl Service {
         }
         let certs = session
             .get_peer_certificates()
-            .ok_or(anyhow!("No remote certificates found"))?;
+            .ok_or_else(|| anyhow!("No remote certificates found"))?;
         if certs.len() != 1 {
             anyhow!("Wrong number of certificates: {}", certs.len());
         }

@@ -1,5 +1,7 @@
+pub mod connection;
 mod deviceid;
 mod luhn;
+mod model;
 
 pub use deviceid::DeviceId;
 

@@ -1,7 +1,6 @@
 use anyhow::Result;
 use tokio::signal::ctrl_c;
 use tracing::{error, info};
-use tracing_subscriber;
 
 mod connections;
 mod discover;
