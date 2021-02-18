@@ -31,17 +31,21 @@ impl ConnectionHandle {
         let (inbox_tx, inbox_rx) = mpsc::channel(1024);
         let (outbox_tx, outbox_rx) = mpsc::channel(1024);
         let (last_msg_received_tx, last_msg_received_rx) = watch::channel(Instant::now());
+        let (last_msg_sent_tx, last_msg_sent_rx) = watch::channel(Instant::now());
 
         let mut connection_reader = ConnectionReader::new(reader, inbox_tx, last_msg_received_tx);
-        let mut connection_writer = ConnectionWriter::new(writer, outbox_rx);
-        let mut connection_dispatcher = ConnectionDispatcher::new(inbox_rx, outbox_tx);
+        let mut connection_writer = ConnectionWriter::new(writer, outbox_rx, last_msg_sent_tx);
+        let mut connection_dispatcher = ConnectionDispatcher::new(inbox_rx, outbox_tx.clone());
         let connection_ping_receiver: ConnectionPingReceiver =
             ConnectionPingReceiver::new(last_msg_received_rx);
+        let connection_ping_sender: ConnectionPingSender =
+            ConnectionPingSender::new(outbox_tx.clone(), last_msg_sent_rx);
 
         tokio::spawn(async move { connection_reader.run().await });
         tokio::spawn(async move { connection_writer.run().await });
         tokio::spawn(async move { connection_dispatcher.run().await });
         tokio::spawn(async move { connection_ping_receiver.run().await });
+        tokio::spawn(async move { connection_ping_sender.run().await });
 
         Self {}
     }
@@ -75,6 +79,7 @@ where
     }
 
     pub async fn run(&mut self) {
+        info!("Starting connection reader...");
         loop {
             match self.read_frame().await {
                 Ok(Some(frame)) => {
@@ -155,25 +160,36 @@ pub struct ConnectionWriter<T> {
     conn: T,
     outbox: mpsc::Receiver<Frame>,
     buf: BytesMut,
+    last_msg_sent: watch::Sender<Instant>,
 }
 
 impl<T> ConnectionWriter<T>
 where
     T: AsyncWrite + Sync + Send + 'static + Unpin,
 {
-    pub fn new(conn: T, outbox: mpsc::Receiver<Frame>) -> Self {
+    pub fn new(
+        conn: T,
+        outbox: mpsc::Receiver<Frame>,
+        last_msg_sent_tx: watch::Sender<Instant>,
+    ) -> Self {
         Self {
             conn,
             outbox,
             buf: BytesMut::with_capacity(1024),
+            last_msg_sent: last_msg_sent_tx,
         }
     }
 
     pub async fn run(&mut self) {
+        info!("Starting connection writer...");
         loop {
             if let Some(frame) = self.outbox.recv().await {
                 if let Err(e) = self.send_msg(frame).await {
                     warn!(err = %e, "Failed to send message");
+                } else {
+                    self.last_msg_sent.send(Instant::now()).unwrap_or_else(
+                        |e| warn!(err=%e, "Failed to send last_msg_sent timestamp"),
+                    );
                 }
             } else {
                 info!("Shutting down");
@@ -206,21 +222,13 @@ impl ConnectionDispatcher {
     }
 
     pub async fn run(&mut self) {
+        info!("Starting connection message dispatcher...");
         loop {
-            let msg = select! {
-                res = self.inbox.recv() => {
-                    match res {
-                        Some(frame) => frame,
-                        None => {
-                            info!("Shutting down");
-                            break;
-                        }
-                    }
-                }
-                _ = tokio::time::sleep(Duration::from_secs(60)) => {
-                    debug!("Time to send ping");
-                    Frame::Ping(Ping::new())
-                }
+            let msg = if let Some(frame) = self.inbox.recv().await {
+                frame
+            } else {
+                info!("Shutting down");
+                break;
             };
             if let Err(e) = self.dispatch(&msg).await {
                 warn!(%e, ?msg, "Failed to dispatch message");
@@ -258,6 +266,7 @@ impl ConnectionPingReceiver {
     }
 
     pub async fn run(&self) {
+        info!("Starting connection Ping receiver...");
         let mut interval = tokio::time::interval(self.receive_duration / 2);
         loop {
             let tick_time = interval.tick().await;
@@ -265,6 +274,37 @@ impl ConnectionPingReceiver {
             if tick_time.duration_since(*last_received_time) >= self.receive_duration {
                 // TODO timeout the connection!
                 warn!("No ping received for more than 90 seconds! Closing the connection (TODO)");
+            }
+        }
+    }
+}
+
+pub struct ConnectionPingSender {
+    outbox: mpsc::Sender<Frame>,
+    last_msg_sent: watch::Receiver<Instant>,
+    send_duration: Duration,
+}
+
+impl ConnectionPingSender {
+    pub fn new(outbox: mpsc::Sender<Frame>, last_msg_sent: watch::Receiver<Instant>) -> Self {
+        Self {
+            outbox,
+            last_msg_sent,
+            send_duration: Duration::from_secs(90),
+        }
+    }
+
+    pub async fn run(&self) {
+        info!("Starting connection Ping sender...");
+        let mut interval = tokio::time::interval(self.send_duration / 2);
+        loop {
+            let tick_time = interval.tick().await;
+            let last_sent_time = *self.last_msg_sent.borrow();
+            if tick_time.duration_since(last_sent_time) >= self.send_duration {
+                debug!("No message sent in the last 90 seconds. Sending Ping...");
+                if let Err(err) = self.outbox.send(Frame::Ping(Ping::new())).await {
+                    warn!(%err, "Failed to send Ping message");
+                }
             }
         }
     }
