@@ -19,7 +19,9 @@ use crate::protos::{
 };
 
 /// Handle to a connection to a peer.
-pub struct ConnectionHandle {}
+pub struct ConnectionHandle {
+    outbox: mpsc::Sender<Frame>,
+}
 
 impl ConnectionHandle {
     /// Creates a new connection handle for the given TLS connection.
@@ -47,7 +49,17 @@ impl ConnectionHandle {
         tokio::spawn(async move { connection_ping_receiver.run().await });
         tokio::spawn(async move { connection_ping_sender.run().await });
 
-        Self {}
+        Self {
+            outbox: outbox_tx.clone(),
+        }
+    }
+
+    pub async fn config_cluster(&mut self) -> Result<()> {
+        // TODO generate proper config
+        let config = Frame::ClusterConfig(ClusterConfig::new());
+        self.outbox.send(config).await?;
+
+        Ok(())
     }
 }
 
@@ -214,11 +226,16 @@ where
 pub struct ConnectionDispatcher {
     inbox: mpsc::Receiver<Frame>,
     outbox: mpsc::Sender<Frame>,
+    state: ConnectionState,
 }
 
 impl ConnectionDispatcher {
     pub fn new(inbox: mpsc::Receiver<Frame>, outbox: mpsc::Sender<Frame>) -> Self {
-        Self { inbox, outbox }
+        Self {
+            inbox,
+            outbox,
+            state: ConnectionState::Initial,
+        }
     }
 
     pub async fn run(&mut self) {
@@ -238,7 +255,10 @@ impl ConnectionDispatcher {
 
     async fn dispatch(&mut self, message: &Frame) -> Result<()> {
         match message {
-            Frame::ClusterConfig(_) => {}
+            Frame::ClusterConfig(_) => {
+                debug!("Got ClusterConfig from peer: switching connection state to Ready");
+                self.state = ConnectionState::Ready;
+            }
             Frame::Index(_) => {}
             Frame::IndexUpdate(_) => {}
             Frame::Request(_) => {}
@@ -300,6 +320,11 @@ impl ConnectionPingSender {
         loop {
             let tick_time = interval.tick().await;
             let last_sent_time = *self.last_msg_sent.borrow();
+            if tick_time <= last_sent_time {
+                // This can happen when we send the ClusterConfig message and
+                // the PingSender task hasn't started yet. Just ignore it...
+                continue;
+            }
             if tick_time.duration_since(last_sent_time) >= self.send_duration {
                 debug!("No message sent in the last 90 seconds. Sending Ping...");
                 if let Err(err) = self.outbox.send(Frame::Ping(Ping::new())).await {
@@ -441,4 +466,10 @@ impl Frame {
 
         Ok(())
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ConnectionState {
+    Initial,
+    Ready,
 }

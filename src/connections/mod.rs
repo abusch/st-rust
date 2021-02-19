@@ -103,7 +103,9 @@ impl Service {
                     info!("Sent {} bytes back", buf.len());
 
                     debug!("Dispatching task to handle connection");
-                    let connection_handle = ConnectionHandle::new(stream);
+                    let mut connection_handle = ConnectionHandle::new(stream);
+                    debug!("Sending ClusterConfig");
+                    connection_handle.config_cluster().await?;
                     self.connections.insert(remote_id, connection_handle);
                 } else {
                     warn!("Invalid magic number in header: {:?}", header);
