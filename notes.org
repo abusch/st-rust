@@ -11,9 +11,18 @@ parts of it in rust.
 - [X] Set up protocol negotiation for bep/1.0
 - [X] Send a =Hello= packet back
 - [X] Verify peer's certificate
-- [-] Refactor/clean-up code as it's getting messy...
+- [X] Refactor/clean-up code as it's getting messy...
   In progress....
-- [ ] Keep the connection open and handle incoming messages
+- [X] Keep the connection open and handle incoming messages
+- [ ] properly handle connection shutdown
+- [ ] discover our IP address(es) instead of hardcoding it
+- [ ] Start putting stuff in a config file (eg. peers that we know about)
+* Longer term tasks
+- [ ] Global discovery
+- [ ] File indexing, db, file synchronization...
+- [ ] QUIC support?
+- [ ] IPv6 support?
+- [ ] REST api?
 
 * Syncthing stuff
 ** Keys and device ids
@@ -79,6 +88,7 @@ The general structure of a certificate, encoded as ASN.1, is as follows:
 - Connect to the address with TLS while presenting our own certificate
 - exchange =Hello= packet
 - Verify that the remote certificate (there should be only one) matches the device ID we expect.
+- send =ClusterConfig= message
 ** Main loop
 - a =service= launches a bunch of goroutines:
   + one to listen for incoming connections
@@ -87,7 +97,9 @@ The general structure of a certificate, encoded as ASN.1, is as follows:
 - when a =connection= is registered and started, it launches a bunch of goroutines:
   + one that reads messages and sends them to the =dispatcher=
   + a =dispatcher= that handles the different messages (e.g. =ClusterConfig=, =Index=, =Close=, etc...)
-  + ...
+  + one that writes messages to the socket
+  + a ping sender
+  + a ping receiver
 * Implementation
 ** Libs
 - Use Tokio for the async stuff...
@@ -126,14 +138,11 @@ I tried applying the above principles and ended up with:
 - a =ConnectionReader= task: listens on the =Reader= half of the socket, deserializes incoming messages, and sends them on the inbox channel;
 - a =ConnectionDispatcher= task: pulls messages from the inbox, reacts to them, and optionally sends another message to the outbox;
 - a =ConnectionWriter= task: pulls messages from the outbox, serializes them and writes them to the =Writer= half of the socket;
+- a =ConnectionPingReceiver= task: timeout the connection if no message has been received in the last x seconds
+- a =ConnectionPingSender= task: sends a =Ping= message if no message has been sent for more than x seconds
 
 All these tasks are managed by a single =ConnectionHandle=.
 
-Still to be done:
-- [ ] a task to timeout the connection if no message has been received in the last x seconds
-- [ ] a task to send a =Ping= if no message has been sent in the last x seconds
-
-The problem is how to share that state (time of last received message, time of last sent message...)
 ** Protobuf
 *** default values
 One thing that caught me by surprise: protobuf has a concept of _default values_
@@ -147,3 +156,6 @@ the default value. So both the header and the actual messages are effectively
 empty. All that is left are the header length and message length that are both 0
 i.e the entire packet consists of 6 null bytes: =0x000000=. This confused me for
 a while when I was debugging things...
+*** prost
+Stumbled upon the =prost= crate which seems to be another implementation of protobufs in Rust. It seems simpler (but relies on macros). Also seems to play better with the =bytes= crate.
+- [ ] Try out (and potentially switch to) prost

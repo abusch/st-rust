@@ -7,11 +7,11 @@ use protobuf::Message;
 
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
-    select,
     sync::{mpsc, watch},
     time::Instant,
 };
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info, trace, warn};
+use tracing_futures::Instrument;
 
 use crate::protos::{
     Close, ClusterConfig, DownloadProgress, Header, Index, IndexUpdate, MessageCompression,
@@ -43,11 +43,36 @@ impl ConnectionHandle {
         let connection_ping_sender: ConnectionPingSender =
             ConnectionPingSender::new(outbox_tx.clone(), last_msg_sent_rx);
 
-        tokio::spawn(async move { connection_reader.run().await });
-        tokio::spawn(async move { connection_writer.run().await });
-        tokio::spawn(async move { connection_dispatcher.run().await });
-        tokio::spawn(async move { connection_ping_receiver.run().await });
-        tokio::spawn(async move { connection_ping_sender.run().await });
+        tokio::spawn(async move {
+            connection_reader
+                .run()
+                .instrument(tracing::info_span!("connection_reader"))
+                .await
+        });
+        tokio::spawn(async move {
+            connection_writer
+                .run()
+                .instrument(tracing::info_span!("connection_writer"))
+                .await
+        });
+        tokio::spawn(async move {
+            connection_dispatcher
+                .run()
+                .instrument(tracing::info_span!("connection_dispatcher"))
+                .await
+        });
+        tokio::spawn(async move {
+            connection_ping_receiver
+                .run()
+                .instrument(tracing::info_span!("connection_ping_receiver"))
+                .await
+        });
+        tokio::spawn(async move {
+            connection_ping_sender
+                .run()
+                .instrument(tracing::info_span!("connection_ping_sender"))
+                .await
+        });
 
         Self {
             outbox: outbox_tx.clone(),
@@ -128,7 +153,7 @@ where
                 return Ok(Some(frame));
             }
 
-            debug!("Not enough data in the buffer, waiting for more data...");
+            trace!("Not enough data in the buffer, waiting for more data...");
             let n = self.conn.read_buf(&mut self.buffer).await?;
             if n == 0 {
                 // We got EOF, check the buffer to see if there was left-over data
@@ -138,14 +163,14 @@ where
                     return Err(anyhow!("Connection reset by peer"));
                 }
             } else {
-                debug!("Read {} bytes", n);
+                trace!("Read {} bytes", n);
             }
         }
     }
 
     fn parse_frame(&mut self) -> Result<Option<Frame>> {
         let mut buf = Cursor::new(&self.buffer[..]);
-        debug!("{} bytes available in buffer", buf.remaining());
+        trace!("{} bytes available in buffer", buf.remaining());
         if Frame::check_size(&mut buf) {
             // Reset position at the beginning so we can parse
             buf.set_position(0);
@@ -153,7 +178,7 @@ where
             // The position of the cursor after we parsed a frame is the length
             // of the data we've consumed
             let len = buf.position() as usize;
-            debug!("Consumed {} bytes", len);
+            trace!("Consumed {} bytes", len);
             self.buffer.advance(len);
 
             res
