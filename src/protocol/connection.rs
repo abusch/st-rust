@@ -2,25 +2,23 @@
 use std::{io::Cursor, time::Duration};
 
 use anyhow::{anyhow, Result};
-use bytes::{Buf, BufMut, BytesMut};
-use protobuf::Message;
+use bytes::{Buf, BytesMut};
 
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
-    sync::{mpsc, watch},
+    sync::{mpsc, oneshot, watch},
     time::Instant,
 };
 use tracing::{debug, error, info, trace, warn};
 use tracing_futures::Instrument;
 
-use crate::protos::{
-    Close, ClusterConfig, DownloadProgress, Header, Index, IndexUpdate, MessageCompression,
-    MessageType, Ping, Request, Response,
-};
+use crate::protos::{ClusterConfig, MessageType, Ping};
+
+use super::{AsyncTypedMessage, TypedMessage};
 
 /// Handle to a connection to a peer.
 pub struct ConnectionHandle {
-    outbox: mpsc::Sender<Frame>,
+    outbox: mpsc::Sender<AsyncTypedMessage>,
 }
 
 impl ConnectionHandle {
@@ -37,7 +35,7 @@ impl ConnectionHandle {
 
         let mut connection_reader = ConnectionReader::new(reader, inbox_tx, last_msg_received_tx);
         let mut connection_writer = ConnectionWriter::new(writer, outbox_rx, last_msg_sent_tx);
-        let mut connection_dispatcher = ConnectionDispatcher::new(inbox_rx, outbox_tx.clone());
+        let mut connection_dispatcher = ConnectionDispatcher::new(inbox_rx);
         let connection_ping_receiver: ConnectionPingReceiver =
             ConnectionPingReceiver::new(last_msg_received_rx);
         let connection_ping_sender: ConnectionPingSender =
@@ -79,10 +77,22 @@ impl ConnectionHandle {
         }
     }
 
+    // pub async fn close(&mut self) -> Result<()> {
+    //     self.outbox.send(Frame::Close(Close::new())).await
+    // }
+
     pub async fn config_cluster(&mut self) -> Result<()> {
         // TODO generate proper config
-        let config = Frame::ClusterConfig(ClusterConfig::new());
-        self.outbox.send(config).await?;
+        let config = Box::new(ClusterConfig::new());
+        let (done_tx, done_rx) = oneshot::channel();
+        self.outbox
+            .send(AsyncTypedMessage {
+                msg: TypedMessage::new(MessageType::MESSAGE_TYPE_CLUSTER_CONFIG, config),
+                done: done_tx,
+            })
+            .await?;
+
+        done_rx.await?;
 
         Ok(())
     }
@@ -93,7 +103,7 @@ impl ConnectionHandle {
 /// When a messages arrives, it is deserialized then sent to the dispatcher.
 pub struct ConnectionReader<T> {
     conn: T,
-    inbox: mpsc::Sender<Frame>,
+    inbox: mpsc::Sender<TypedMessage>,
     buffer: BytesMut,
     last_msg_received: watch::Sender<Instant>,
 }
@@ -104,7 +114,7 @@ where
 {
     pub fn new(
         conn: T,
-        inbox: mpsc::Sender<Frame>,
+        inbox: mpsc::Sender<TypedMessage>,
         last_msg_received: watch::Sender<Instant>,
     ) -> Self {
         Self {
@@ -118,7 +128,7 @@ where
     pub async fn run(&mut self) {
         info!("Starting connection reader...");
         loop {
-            match self.read_frame().await {
+            match self.read_message().await {
                 Ok(Some(frame)) => {
                     debug!("Dispatching frame...");
                     match self.inbox.send(frame).await {
@@ -146,11 +156,11 @@ where
         }
     }
 
-    async fn read_frame(&mut self) -> Result<Option<Frame>> {
+    async fn read_message(&mut self) -> Result<Option<TypedMessage>> {
         loop {
             // If there is enough data in the buffer for a frame, return it
-            if let Some(frame) = self.parse_frame()? {
-                return Ok(Some(frame));
+            if let Some(msg) = self.parse_message()? {
+                return Ok(Some(msg));
             }
 
             trace!("Not enough data in the buffer, waiting for more data...");
@@ -168,13 +178,13 @@ where
         }
     }
 
-    fn parse_frame(&mut self) -> Result<Option<Frame>> {
+    fn parse_message(&mut self) -> Result<Option<TypedMessage>> {
         let mut buf = Cursor::new(&self.buffer[..]);
         trace!("{} bytes available in buffer", buf.remaining());
-        if Frame::check_size(&mut buf) {
+        if TypedMessage::check_size(&mut buf) {
             // Reset position at the beginning so we can parse
             buf.set_position(0);
-            let res = Frame::parse(&mut buf).map(Some);
+            let res = TypedMessage::parse(&mut buf).map(Some);
             // The position of the cursor after we parsed a frame is the length
             // of the data we've consumed
             let len = buf.position() as usize;
@@ -195,7 +205,7 @@ where
 /// written to the underlying connection.
 pub struct ConnectionWriter<T> {
     conn: T,
-    outbox: mpsc::Receiver<Frame>,
+    outbox: mpsc::Receiver<AsyncTypedMessage>,
     buf: BytesMut,
     last_msg_sent: watch::Sender<Instant>,
 }
@@ -206,7 +216,7 @@ where
 {
     pub fn new(
         conn: T,
-        outbox: mpsc::Receiver<Frame>,
+        outbox: mpsc::Receiver<AsyncTypedMessage>,
         last_msg_sent_tx: watch::Sender<Instant>,
     ) -> Self {
         Self {
@@ -220,13 +230,18 @@ where
     pub async fn run(&mut self) {
         info!("Starting connection writer...");
         loop {
-            if let Some(frame) = self.outbox.recv().await {
-                if let Err(e) = self.send_msg(frame).await {
+            if let Some(AsyncTypedMessage { msg, done }) = self.outbox.recv().await {
+                if let Err(e) = self.send_msg(msg).await {
                     warn!(err = %e, "Failed to send message");
                 } else {
+                    // Keep track of when we last sent a message to this peer so we know when to send a Ping
                     self.last_msg_sent.send(Instant::now()).unwrap_or_else(
                         |e| warn!(err=%e, "Failed to send last_msg_sent timestamp"),
                     );
+                    // Notify the caller that we've sent the message down the wire
+                    done.send(()).unwrap_or_else(|_| {
+                        warn!("Failed to notify caller: the receiver was dropped")
+                    });
                 }
             } else {
                 info!("Shutting down");
@@ -235,10 +250,10 @@ where
         }
     }
 
-    async fn send_msg(&mut self, frame: Frame) -> Result<()> {
+    async fn send_msg(&mut self, msg: TypedMessage) -> Result<()> {
         self.buf.clear();
 
-        frame.write_to_bytes(&mut self.buf)?;
+        msg.write_to_bytes(&mut self.buf)?;
         self.conn.write_all(&self.buf[..]).await?;
 
         Ok(())
@@ -249,16 +264,14 @@ where
 ///
 /// Can optionally send out messages to the writer.
 pub struct ConnectionDispatcher {
-    inbox: mpsc::Receiver<Frame>,
-    outbox: mpsc::Sender<Frame>,
+    inbox: mpsc::Receiver<TypedMessage>,
     state: ConnectionState,
 }
 
 impl ConnectionDispatcher {
-    pub fn new(inbox: mpsc::Receiver<Frame>, outbox: mpsc::Sender<Frame>) -> Self {
+    pub fn new(inbox: mpsc::Receiver<TypedMessage>) -> Self {
         Self {
             inbox,
-            outbox,
             state: ConnectionState::Initial,
         }
     }
@@ -278,19 +291,19 @@ impl ConnectionDispatcher {
         }
     }
 
-    async fn dispatch(&mut self, message: &Frame) -> Result<()> {
-        match message {
-            Frame::ClusterConfig(_) => {
+    async fn dispatch(&mut self, message: &TypedMessage) -> Result<()> {
+        match message.typ {
+            MessageType::MESSAGE_TYPE_CLUSTER_CONFIG => {
                 debug!("Got ClusterConfig from peer: switching connection state to Ready");
                 self.state = ConnectionState::Ready;
             }
-            Frame::Index(_) => {}
-            Frame::IndexUpdate(_) => {}
-            Frame::Request(_) => {}
-            Frame::Response(_) => {}
-            Frame::DownloadProgress(_) => {}
-            Frame::Ping(_) => {}
-            Frame::Close(_) => {}
+            MessageType::MESSAGE_TYPE_INDEX => {}
+            MessageType::MESSAGE_TYPE_INDEX_UPDATE => {}
+            MessageType::MESSAGE_TYPE_REQUEST => {}
+            MessageType::MESSAGE_TYPE_RESPONSE => {}
+            MessageType::MESSAGE_TYPE_DOWNLOAD_PROGRESS => {}
+            MessageType::MESSAGE_TYPE_PING => {}
+            MessageType::MESSAGE_TYPE_CLOSE => {}
         }
 
         Ok(())
@@ -325,13 +338,16 @@ impl ConnectionPingReceiver {
 }
 
 pub struct ConnectionPingSender {
-    outbox: mpsc::Sender<Frame>,
+    outbox: mpsc::Sender<AsyncTypedMessage>,
     last_msg_sent: watch::Receiver<Instant>,
     send_duration: Duration,
 }
 
 impl ConnectionPingSender {
-    pub fn new(outbox: mpsc::Sender<Frame>, last_msg_sent: watch::Receiver<Instant>) -> Self {
+    pub fn new(
+        outbox: mpsc::Sender<AsyncTypedMessage>,
+        last_msg_sent: watch::Receiver<Instant>,
+    ) -> Self {
         Self {
             outbox,
             last_msg_sent,
@@ -352,144 +368,27 @@ impl ConnectionPingSender {
             }
             if tick_time.duration_since(last_sent_time) >= self.send_duration {
                 debug!("No message sent in the last 90 seconds. Sending Ping...");
-                if let Err(err) = self.outbox.send(Frame::Ping(Ping::new())).await {
+
+                let (ping, done) = self.ping_msg();
+                if let Err(err) = self.outbox.send(ping).await {
                     warn!(%err, "Failed to send Ping message");
                 }
+                done.await.unwrap_or_else(
+                    |e| warn!(err=%e, "Error while waiting to be notified. Sender was dropped?"),
+                );
             }
         }
     }
-}
 
-/// TODO rename to something better than Frame...
-#[derive(Debug)]
-pub enum Frame {
-    ClusterConfig(ClusterConfig),
-    Index(Index),
-    IndexUpdate(IndexUpdate),
-    Request(Request),
-    Response(Response),
-    DownloadProgress(DownloadProgress),
-    Ping(Ping),
-    Close(Close),
-}
-
-impl Frame {
-    /// Returns true if there is enough data in the buffer to parse a full frame
-    /// (header + Message)
-    pub fn check_size(buf: &mut Cursor<&[u8]>) -> bool {
-        // Do we have enough to read the header length?
-        if buf.remaining() < 2 {
-            return false;
-        }
-
-        let hdr_len = buf.get_u16();
-        // Do we have enough data to read the header?
-        if buf.remaining() < hdr_len as usize {
-            return false;
-        }
-
-        buf.advance(hdr_len as usize);
-        if buf.remaining() < 4 {
-            return false;
-        }
-        let msg_len = buf.get_u32();
-        if buf.remaining() < msg_len as usize {
-            return false;
-        }
-
-        true
-    }
-
-    /// Parse a frame (header + message).
-    ///
-    /// The content of the buffer should have already checked with
-    /// [`check_size`] to make sure there is enough data in the buffer,
-    /// otherwise this will panic.
-    pub fn parse(buf: &mut Cursor<&[u8]>) -> Result<Frame> {
-        let hdr_len = buf.get_u16();
-        debug!("Header length = {}", hdr_len);
-        let hdr_bytes = buf.copy_to_bytes(hdr_len as usize);
-        let header = Header::parse_from_bytes(&hdr_bytes[..])?;
-        debug!(?header, "Got header");
-
-        let msg_len = buf.get_u32();
-        let msg_bytes = buf.copy_to_bytes(msg_len as usize);
-
-        if header.get_compression() == MessageCompression::MESSAGE_COMPRESSION_LZ4 {
-            // TODO Implement LZ4 compression support
-            return Err(anyhow!("Compressed message data is not implemented!"));
-        }
-
-        let msg = match header.get_field_type() {
-            MessageType::MESSAGE_TYPE_CLUSTER_CONFIG => {
-                let m = ClusterConfig::parse_from_bytes(&msg_bytes[..])?;
-                debug!("Got ClusterConfig with {} folders", m.get_folders().len());
-                Self::ClusterConfig(m)
-            }
-            MessageType::MESSAGE_TYPE_INDEX => {
-                Self::Index(Index::parse_from_bytes(&msg_bytes[..])?)
-            }
-            MessageType::MESSAGE_TYPE_INDEX_UPDATE => {
-                Self::IndexUpdate(IndexUpdate::parse_from_bytes(&msg_bytes[..])?)
-            }
-            MessageType::MESSAGE_TYPE_REQUEST => {
-                Self::Request(Request::parse_from_bytes(&msg_bytes[..])?)
-            }
-            MessageType::MESSAGE_TYPE_RESPONSE => {
-                Self::Response(Response::parse_from_bytes(&msg_bytes[..])?)
-            }
-            MessageType::MESSAGE_TYPE_DOWNLOAD_PROGRESS => {
-                Self::DownloadProgress(DownloadProgress::parse_from_bytes(&msg_bytes[..])?)
-            }
-            MessageType::MESSAGE_TYPE_PING => Self::Ping(Ping::parse_from_bytes(&msg_bytes[..])?),
-            MessageType::MESSAGE_TYPE_CLOSE => {
-                Self::Close(Close::parse_from_bytes(&msg_bytes[..])?)
-            }
-        };
-
-        debug!(?msg, "Got message");
-        Ok(msg)
-    }
-
-    pub fn header(&self) -> Header {
-        let mut header = Header::new();
-        let msg_type = match *self {
-            Frame::ClusterConfig(_) => MessageType::MESSAGE_TYPE_CLUSTER_CONFIG,
-            Frame::Index(_) => MessageType::MESSAGE_TYPE_INDEX,
-            Frame::IndexUpdate(_) => MessageType::MESSAGE_TYPE_INDEX_UPDATE,
-            Frame::Request(_) => MessageType::MESSAGE_TYPE_REQUEST,
-            Frame::Response(_) => MessageType::MESSAGE_TYPE_RESPONSE,
-            Frame::DownloadProgress(_) => MessageType::MESSAGE_TYPE_DOWNLOAD_PROGRESS,
-            Frame::Ping(_) => MessageType::MESSAGE_TYPE_PING,
-            Frame::Close(_) => MessageType::MESSAGE_TYPE_CLOSE,
-        };
-        header.set_field_type(msg_type);
-        header.set_compression(MessageCompression::MESSAGE_COMPRESSION_NONE);
-
-        header
-    }
-
-    pub fn write_to_bytes(&self, buf: &mut impl BufMut) -> Result<()> {
-        // TODO is there anyway to avoid allocating some Vecs here?
-        let header = self.header();
-        let header_bytes = header.write_to_bytes()?;
-        buf.put_u16(header_bytes.len() as u16);
-        buf.put_slice(&header_bytes[..]);
-
-        let bytes = match self {
-            Frame::ClusterConfig(m) => m.write_to_bytes(),
-            Frame::Index(m) => m.write_to_bytes(),
-            Frame::IndexUpdate(m) => m.write_to_bytes(),
-            Frame::Request(m) => m.write_to_bytes(),
-            Frame::Response(m) => m.write_to_bytes(),
-            Frame::DownloadProgress(m) => m.write_to_bytes(),
-            Frame::Ping(m) => m.write_to_bytes(),
-            Frame::Close(m) => m.write_to_bytes(),
-        }?;
-        buf.put_u32(bytes.len() as u32);
-        buf.put_slice(&bytes[..]);
-
-        Ok(())
+    fn ping_msg(&self) -> (AsyncTypedMessage, oneshot::Receiver<()>) {
+        let (done_tx, done_rx) = oneshot::channel();
+        (
+            AsyncTypedMessage {
+                msg: TypedMessage::new(MessageType::MESSAGE_TYPE_PING, Box::new(Ping::new())),
+                done: done_tx,
+            },
+            done_rx,
+        )
     }
 }
 

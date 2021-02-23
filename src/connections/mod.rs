@@ -7,7 +7,7 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
     select,
-    sync::mpsc::Receiver,
+    sync::mpsc,
 };
 use tokio_rustls::server::TlsStream;
 use tracing::{debug, error, info, warn};
@@ -20,7 +20,7 @@ use crate::{
 pub mod tcp;
 
 pub async fn connection_service(my_id: DeviceId, tls_config: ServerConfig) -> Result<()> {
-    let (conns_tx, conns_rx) = tokio::sync::mpsc::channel(10);
+    let (conns_tx, conns_rx) = mpsc::channel(10);
     let mut service = Service::new(my_id, conns_rx);
 
     select! {
@@ -42,12 +42,12 @@ pub async fn connection_service(my_id: DeviceId, tls_config: ServerConfig) -> Re
 /// Service to manage connections
 pub struct Service {
     my_id: DeviceId,
-    conns: Receiver<InternalConn>,
+    conns: mpsc::Receiver<InternalConn>,
     connections: HashMap<DeviceId, ConnectionHandle>,
 }
 
 impl Service {
-    pub fn new(my_id: DeviceId, conns: Receiver<InternalConn>) -> Self {
+    pub fn new(my_id: DeviceId, conns: mpsc::Receiver<InternalConn>) -> Self {
         Self {
             my_id,
             conns,
