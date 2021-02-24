@@ -14,9 +14,11 @@ parts of it in rust.
 - [X] Refactor/clean-up code as it's getting messy...
   In progress....
 - [X] Keep the connection open and handle incoming messages
+- [ ] Try switching to =prost= as protobuf implementation
 - [ ] properly handle connection shutdown
 - [ ] discover our IP address(es) instead of hardcoding it
 - [ ] Start putting stuff in a config file (eg. peers that we know about)
+- [ ] Start implementing the Model
 * Longer term tasks
 - [ ] Global discovery
 - [ ] File indexing, db, file synchronization...

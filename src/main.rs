@@ -2,6 +2,7 @@ use anyhow::Result;
 use tokio::signal::ctrl_c;
 use tracing::{error, info};
 
+mod config;
 mod connections;
 mod discover;
 mod protocol;
@@ -15,6 +16,8 @@ use discover::local;
 async fn main() -> Result<()> {
     // Initialize tracing
     tracing_subscriber::fmt::init();
+
+    let config = config::load_config()?;
 
     let certs = tls::load_certs("cert.pem")?;
     info!("Loaded {} certificates", certs.len());
