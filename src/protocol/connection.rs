@@ -12,7 +12,7 @@ use tokio::{
 use tracing::{debug, error, info, trace, warn};
 use tracing_futures::Instrument;
 
-use crate::protos::{ClusterConfig, MessageType, Ping};
+use crate::protos::{ClusterConfig, Ping};
 
 use super::{AsyncTypedMessage, TypedMessage};
 
@@ -83,11 +83,11 @@ impl ConnectionHandle {
 
     pub async fn config_cluster(&mut self) -> Result<()> {
         // TODO generate proper config
-        let config = Box::new(ClusterConfig::new());
+        let config = ClusterConfig::default();
         let (done_tx, done_rx) = oneshot::channel();
         self.outbox
             .send(AsyncTypedMessage {
-                msg: TypedMessage::new(MessageType::MESSAGE_TYPE_CLUSTER_CONFIG, config),
+                msg: TypedMessage::ClusterConfig(config),
                 done: done_tx,
             })
             .await?;
@@ -292,18 +292,18 @@ impl ConnectionDispatcher {
     }
 
     async fn dispatch(&mut self, message: &TypedMessage) -> Result<()> {
-        match message.typ {
-            MessageType::MESSAGE_TYPE_CLUSTER_CONFIG => {
+        match message {
+            TypedMessage::ClusterConfig(_) => {
                 debug!("Got ClusterConfig from peer: switching connection state to Ready");
                 self.state = ConnectionState::Ready;
             }
-            MessageType::MESSAGE_TYPE_INDEX => {}
-            MessageType::MESSAGE_TYPE_INDEX_UPDATE => {}
-            MessageType::MESSAGE_TYPE_REQUEST => {}
-            MessageType::MESSAGE_TYPE_RESPONSE => {}
-            MessageType::MESSAGE_TYPE_DOWNLOAD_PROGRESS => {}
-            MessageType::MESSAGE_TYPE_PING => {}
-            MessageType::MESSAGE_TYPE_CLOSE => {}
+            TypedMessage::Index(_) => {}
+            TypedMessage::IndexUpdate(_) => {}
+            TypedMessage::Request(_) => {}
+            TypedMessage::Response(_) => {}
+            TypedMessage::DownloadProgress(_) => {}
+            TypedMessage::Ping(_) => {}
+            TypedMessage::Close(_) => {}
         }
 
         Ok(())
@@ -384,7 +384,7 @@ impl ConnectionPingSender {
         let (done_tx, done_rx) = oneshot::channel();
         (
             AsyncTypedMessage {
-                msg: TypedMessage::new(MessageType::MESSAGE_TYPE_PING, Box::new(Ping::new())),
+                msg: TypedMessage::Ping(Ping::default()),
                 done: done_tx,
             },
             done_rx,

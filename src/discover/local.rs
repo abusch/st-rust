@@ -5,8 +5,8 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use bytes::BufMut;
-use protobuf::{Chars, Message};
+use bytes::{BufMut, BytesMut};
+use prost::Message;
 use tokio::{net::UdpSocket, sync::Mutex, time::sleep};
 use tracing::{debug, error, info, instrument, warn};
 use url::Url;
@@ -46,6 +46,7 @@ pub async fn local_discovery(device_id: DeviceId) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub struct CacheEntry {
     addresses: Vec<String>,
     when: Instant,
@@ -54,6 +55,7 @@ pub struct CacheEntry {
 }
 
 struct LocalListener {
+    #[allow(dead_code)]
     my_id: DeviceId,
     cache: Mutex<HashMap<DeviceId, CacheEntry>>,
 }
@@ -82,9 +84,9 @@ impl LocalListener {
                         continue;
                     }
                     if &buf[0..4] == MAGIC {
-                        let announce = Announce::parse_from_bytes(&buf[4..len]).unwrap();
+                        let announce = Announce::decode(&buf[4..len])?;
                         let _is_new_device = self.register_device(announce, addr).await;
-                    // TODO send a broadcast message to announce ourselves if is_new_device
+                        // TODO send a broadcast message to announce ourselves if is_new_device
                     } else {
                         info!("Discarding unknown packet");
                     }
@@ -95,15 +97,15 @@ impl LocalListener {
     }
 
     async fn register_device(&self, announce: Announce, src_addr: SocketAddr) -> bool {
-        let device_id = DeviceId::new(announce.get_id());
+        let device_id = DeviceId::new(&announce.id[..]);
         info!(
             "Got an announcement packet from {} for {}",
             src_addr, device_id
         );
 
         let mut valid_addresses = vec![];
-        for addr in announce.get_addresses() {
-            match self.validate_address(addr.to_string(), &src_addr).await {
+        for addr in announce.addresses.iter() {
+            match self.validate_address(addr, &src_addr).await {
                 Ok(valid_address) => valid_addresses.push(valid_address),
                 Err(e) => debug!("Ignoring invalid address {}: {}", addr, e),
             }
@@ -128,9 +130,9 @@ impl LocalListener {
             .unwrap_or(false)
     }
 
-    async fn validate_address(&self, addr: String, src: &SocketAddr) -> Result<String> {
+    async fn validate_address(&self, addr: &str, src: &SocketAddr) -> Result<String> {
         // Make sure it's a parsable URL
-        let mut url = Url::parse(&addr)?;
+        let mut url = Url::parse(addr)?;
         if url.has_host() {
             // Try to resolve the host. Need to do that on a blocking thread as `Url::socket_addrs()` is not async.
             let url2 = url.clone();
@@ -172,7 +174,7 @@ impl LocalBeacon {
     }
 
     pub async fn announce(&self) -> Result<()> {
-        let mut buf = Vec::with_capacity(1024);
+        let mut buf = BytesMut::with_capacity(1024);
         info!("Ready to send announcement packets");
         loop {
             buf.clear();
@@ -180,7 +182,7 @@ impl LocalBeacon {
             sleep(self.sleep_duration).await;
             info!("Sending announcement packet");
             let announce = self.announce_msg();
-            announce.write_to_vec(&mut buf)?;
+            announce.encode(&mut buf)?;
             match self.sock.send(&buf).await {
                 Ok(n) => info!("Sent {} bytes", n),
                 Err(e) => warn!("Failed to send packet: {}", e),
@@ -189,11 +191,11 @@ impl LocalBeacon {
     }
 
     fn announce_msg(&self) -> Announce {
-        let addresses = vec![Chars::from("tcp://10.0.1.214:22000")];
-        let mut pkt = Announce::new();
-        pkt.set_id(self.my_id.to_bytes());
-        pkt.set_instance_id(self.instance_id);
-        pkt.set_addresses(addresses);
+        let addresses = vec!["tcp://10.0.1.214:22000".to_string()];
+        let mut pkt = Announce::default();
+        pkt.id = self.my_id.to_bytes().to_vec();
+        pkt.instance_id = self.instance_id;
+        pkt.addresses = addresses;
 
         pkt
     }

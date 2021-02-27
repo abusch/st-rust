@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
-use protobuf::Message;
+use bytes::BufMut;
+use prost::Message;
 use rustls::{ServerConfig, Session};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -13,7 +14,7 @@ use tokio_rustls::server::TlsStream;
 use tracing::{debug, error, info, warn};
 
 use crate::{
-    protocol::{connection::ConnectionHandle, DeviceId, MAGIC},
+    protocol::{connection::ConnectionHandle, DeviceId, MAGIC, MessageExt},
     protos::Hello,
 };
 
@@ -41,6 +42,7 @@ pub async fn connection_service(my_id: DeviceId, tls_config: ServerConfig) -> Re
 
 /// Service to manage connections
 pub struct Service {
+    #[allow(dead_code)]
     my_id: DeviceId,
     conns: mpsc::Receiver<InternalConn>,
     connections: HashMap<DeviceId, ConnectionHandle>,
@@ -83,24 +85,21 @@ impl Service {
                     let mut buf = vec![0u8; len as usize];
                     stream.read_exact(&mut buf).await?;
                     info!("Read {} bytes", len);
-                    let hello = Hello::parse_from_bytes(&buf)?;
+                    let hello = Hello::decode(&buf[..])?;
                     info!("Got a Hello packet! {:?}", hello);
 
                     // Send our own Hello back
                     let mut reply = Hello::default();
-                    reply.set_device_name("calculon".into());
-                    reply.set_client_name("st-rust".into());
-                    reply.set_client_version("0.1".into());
+                    reply.device_name = "calculon".into();
+                    reply.client_name = "st-rust".into();
+                    reply.client_version = "0.1".into();
 
                     buf.clear();
-                    std::io::Write::write(&mut buf, MAGIC)?;
-                    let mut reply_bytes = reply.write_to_bytes()?;
-                    let len = reply_bytes.len() as u16;
-                    std::io::Write::write(&mut buf, &len.to_be_bytes())?;
-                    buf.append(&mut reply_bytes);
-                    info!("Sending Hello packet back: {:?}", reply);
+                    buf.put(MAGIC);
+                    reply.write_len16_and_bytes(&mut buf)?;
+                    debug!("Sending Hello packet back: {:?}", reply);
                     stream.write_all(&buf).await?;
-                    info!("Sent {} bytes back", buf.len());
+                    debug!("Sent {} bytes back", buf.len());
 
                     debug!("Dispatching task to handle connection");
                     let mut connection_handle = ConnectionHandle::new(stream);

@@ -11,7 +11,7 @@ tokio = { version = "1.2.0", features = ["full"] }
 anyhow = "1.0.38"
 bytes = "1.0.1"
 byteorder = "1.4.2"
-protobuf = { version = "2.22.0", features = ["with-bytes"] }
+prost = "0.7"
 ring = "0.16.20"
 data-encoding = "2.3.1"
 pem = "0.8.2"
@@ -30,4 +30,4 @@ ascii = "1.0.0"
 lazy_static = "1.4.0"
 
 [build-dependencies]
-protoc-rust = "2.22.0"
+prost-build = "0.7"

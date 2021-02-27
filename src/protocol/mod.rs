@@ -11,7 +11,7 @@ use bytes::{Buf, BufMut};
 use std::io::Cursor;
 
 use anyhow::{anyhow, Result};
-use protobuf::Message;
+use prost::Message;
 use tokio::sync::oneshot;
 use tracing::debug;
 
@@ -23,17 +23,24 @@ pub use deviceid::DeviceId;
 /// Magic number used in `Announce` packets
 pub const MAGIC: &[u8] = &0x2EA7D90Bu32.to_be_bytes();
 
+/// Represent the different message defined in the BEP protocol.
+///
+/// We wrap them in this enum so we can pass them around as a unified type (for
+/// example sending them over a channel) while still encoding the type
+/// information.
 #[derive(Debug)]
-pub struct TypedMessage {
-    typ: MessageType,
-    msg: Box<dyn Message>,
+pub enum TypedMessage {
+    ClusterConfig(ClusterConfig),
+    Index(Index),
+    IndexUpdate(IndexUpdate),
+    Request(Request),
+    Response(Response),
+    DownloadProgress(DownloadProgress),
+    Ping(Ping),
+    Close(Close),
 }
 
 impl TypedMessage {
-    pub fn new(typ: MessageType, msg: Box<dyn Message>) -> Self {
-        Self { typ, msg }
-    }
-
     /// Returns true if there is enough data in the buffer to parse a full frame
     /// (header + Message)
     pub fn check_size(buf: &mut Cursor<&[u8]>) -> bool {
@@ -69,62 +76,89 @@ impl TypedMessage {
         let hdr_len = buf.get_u16();
         debug!("Header length = {}", hdr_len);
         let hdr_bytes = buf.copy_to_bytes(hdr_len as usize);
-        let header = Header::parse_from_bytes(&hdr_bytes[..])?;
+        let header = Header::decode(&hdr_bytes[..])?;
         debug!(?header, "Got header");
 
         let msg_len = buf.get_u32();
         let msg_bytes = buf.copy_to_bytes(msg_len as usize);
 
-        if header.get_compression() == MessageCompression::MESSAGE_COMPRESSION_LZ4 {
+        if header.compression() == MessageCompression::Lz4 {
             // TODO Implement LZ4 compression support
             return Err(anyhow!("Compressed message data is not implemented!"));
         }
 
-        let msg: Box<dyn Message> = match header.get_field_type() {
-            MessageType::MESSAGE_TYPE_CLUSTER_CONFIG => {
-                let m = ClusterConfig::parse_from_bytes(&msg_bytes[..])?;
-                debug!("Got ClusterConfig with {} folders", m.get_folders().len());
-                Box::new(m)
+        let msg = match header.r#type() {
+            MessageType::ClusterConfig => {
+                let m = ClusterConfig::decode(&msg_bytes[..])?;
+                debug!("Got ClusterConfig with {} folders", m.folders.len());
+                Self::ClusterConfig(m)
             }
-            MessageType::MESSAGE_TYPE_INDEX => Box::new(Index::parse_from_bytes(&msg_bytes[..])?),
-            MessageType::MESSAGE_TYPE_INDEX_UPDATE => {
-                Box::new(IndexUpdate::parse_from_bytes(&msg_bytes[..])?)
+            MessageType::Index => Self::Index(Index::decode(&msg_bytes[..])?),
+            MessageType::IndexUpdate => Self::IndexUpdate(IndexUpdate::decode(&msg_bytes[..])?),
+            MessageType::Request => Self::Request(Request::decode(&msg_bytes[..])?),
+            MessageType::Response => Self::Response(Response::decode(&msg_bytes[..])?),
+            MessageType::DownloadProgress => {
+                Self::DownloadProgress(DownloadProgress::decode(&msg_bytes[..])?)
             }
-            MessageType::MESSAGE_TYPE_REQUEST => {
-                Box::new(Request::parse_from_bytes(&msg_bytes[..])?)
-            }
-            MessageType::MESSAGE_TYPE_RESPONSE => {
-                Box::new(Response::parse_from_bytes(&msg_bytes[..])?)
-            }
-            MessageType::MESSAGE_TYPE_DOWNLOAD_PROGRESS => {
-                Box::new(DownloadProgress::parse_from_bytes(&msg_bytes[..])?)
-            }
-            MessageType::MESSAGE_TYPE_PING => Box::new(Ping::parse_from_bytes(&msg_bytes[..])?),
-            MessageType::MESSAGE_TYPE_CLOSE => Box::new(Close::parse_from_bytes(&msg_bytes[..])?),
+            MessageType::Ping => Self::Ping(Ping::decode(&msg_bytes[..])?),
+            MessageType::Close => Self::Close(Close::decode(&msg_bytes[..])?),
         };
 
         debug!(?msg, "Got message");
-        Ok(TypedMessage::new(header.get_field_type(), msg))
+        Ok(msg)
     }
 
     pub fn header(&self) -> Header {
-        let mut header = Header::new();
-        header.set_field_type(self.typ);
-        header.set_compression(MessageCompression::MESSAGE_COMPRESSION_NONE);
+        let mut header = Header::default();
+        header.r#type = self.message_type().into();
+        header.set_compression(MessageCompression::None);
 
         header
     }
 
-    pub fn write_to_bytes(&self, buf: &mut impl BufMut) -> Result<()> {
-        // TODO is there anyway to avoid allocating some Vecs here?
-        let header = self.header();
-        let header_bytes = header.write_to_bytes()?;
-        buf.put_u16(header_bytes.len() as u16);
-        buf.put_slice(&header_bytes[..]);
+    pub fn message_type(&self) -> MessageType {
+        match self {
+            Self::ClusterConfig(_) => MessageType::ClusterConfig,
+            Self::Index(_) => MessageType::Index,
+            Self::IndexUpdate(_) => MessageType::IndexUpdate,
+            Self::Request(_) => MessageType::Request,
+            Self::Response(_) => MessageType::Response,
+            Self::DownloadProgress(_) => MessageType::DownloadProgress,
+            Self::Ping(_) => MessageType::Ping,
+            Self::Close(_) => MessageType::Close,
+        }
+    }
 
-        let bytes = self.msg.write_to_bytes()?;
-        buf.put_u32(bytes.len() as u32);
-        buf.put_slice(&bytes[..]);
+    pub fn write_to_bytes(&self, buf: &mut impl BufMut) -> Result<()> {
+        let header = self.header();
+        header.write_len16_and_bytes(buf)?;
+
+        match self {
+            Self::ClusterConfig(m) => {
+                m.write_len32_and_bytes(buf)?;
+            }
+            Self::Index(m) => {
+                m.write_len32_and_bytes(buf)?;
+            }
+            Self::IndexUpdate(m) => {
+                m.write_len32_and_bytes(buf)?;
+            }
+            Self::Request(m) => {
+                m.write_len32_and_bytes(buf)?;
+            }
+            Self::Response(m) => {
+                m.write_len32_and_bytes(buf)?;
+            }
+            Self::DownloadProgress(m) => {
+                m.write_len32_and_bytes(buf)?;
+            }
+            Self::Ping(m) => {
+                m.write_len32_and_bytes(buf)?;
+            }
+            Self::Close(m) => {
+                m.write_len32_and_bytes(buf)?;
+            }
+        }
 
         Ok(())
     }
@@ -134,4 +168,23 @@ impl TypedMessage {
 pub struct AsyncTypedMessage {
     msg: TypedMessage,
     done: oneshot::Sender<()>,
+}
+
+pub trait MessageExt: Message {
+    fn write_len16_and_bytes(&self, buf: &mut impl BufMut) -> Result<()>;
+    fn write_len32_and_bytes(&self, buf: &mut impl BufMut) -> Result<()>;
+}
+
+impl <T> MessageExt for T where T: Message + Sized {
+    fn write_len16_and_bytes(&self, buf: &mut impl BufMut) -> Result<()> {
+        buf.put_u16(self.encoded_len() as u16);
+        self.encode(buf)?;
+        Ok(())
+    }
+
+    fn write_len32_and_bytes(&self, buf: &mut impl BufMut) -> Result<()> {
+        buf.put_u32(self.encoded_len() as u32);
+        self.encode(buf)?;
+        Ok(())
+    }
 }

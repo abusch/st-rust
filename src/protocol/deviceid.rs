@@ -65,7 +65,7 @@ impl FromStr for DeviceId {
         let dechunkified = dechunkify(&ascii_str);
 
         // De-luhnify
-        let mut deluhnified = deluhnify(&dechunkified)?;
+        let deluhnified = deluhnify(&dechunkified)?;
         let decoded = BASE32_NOPAD.decode(deluhnified.as_bytes())?;
 
         Ok(DeviceId::new(&decoded[..]))
