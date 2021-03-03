@@ -26,8 +26,6 @@ tracing-futures = "0.2.5"
 serde = { version="1.0.123", features=["derive"] }
 toml = "0.5.8"
 directories = "3.0.1"
-ascii = "1.0.0"
-lazy_static = "1.4.0"
 
 [build-dependencies]
 prost-build = "0.7"

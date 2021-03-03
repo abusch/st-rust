@@ -5,8 +5,7 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{anyhow, ensure, Result};
-use ascii::{AsciiChar, AsciiStr, AsciiString};
+use anyhow::{ensure, Result};
 use bytes::Bytes;
 use data_encoding::BASE32_NOPAD;
 use ring::digest::{digest, Digest, SHA256};
@@ -40,12 +39,14 @@ impl DeviceId {
     }
 
     pub fn to_string(&self) -> String {
-        let base32 = AsciiString::from_ascii(BASE32_NOPAD.encode(&self.0))
-            .expect("BASE32_NOPAD.encode() produced invalid characters!");
-        let luhnified = luhnify(&base32).unwrap();
+        let base32 = BASE32_NOPAD.encode(&self.0);
+        let luhnified = luhnify(&base32.as_bytes()).unwrap();
         let chunkified = chunkify(&luhnified);
 
-        chunkified.into()
+        // SAFETY: the bytes come from BASE32 data, and so belong to [A-Z2-7], which
+        // are valid utf-8 characters. Same with the lunh32 checkpoints. '-'
+        // separators are inserted, which are also valid utf-8 characters.
+        unsafe { String::from_utf8_unchecked(chunkified) }
     }
 }
 
@@ -59,14 +60,12 @@ impl FromStr for DeviceId {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ascii_str = AsciiString::from_ascii(s)
-            .map_err(|e| anyhow!("Device ID string contained non ascii characters: {}", e))?;
         // De-chunkify
-        let dechunkified = dechunkify(&ascii_str);
+        let dechunkified = dechunkify(&s.as_bytes());
 
         // De-luhnify
         let deluhnified = deluhnify(&dechunkified)?;
-        let decoded = BASE32_NOPAD.decode(deluhnified.as_bytes())?;
+        let decoded = BASE32_NOPAD.decode(&deluhnified)?;
 
         Ok(DeviceId::new(&decoded[..]))
     }
@@ -86,12 +85,12 @@ impl From<DeviceId> for String {
     }
 }
 
-fn luhnify(s: &AsciiStr) -> Result<AsciiString> {
+fn luhnify(s: &[u8]) -> Result<Vec<u8>> {
     assert!(s.len() == 52, "Unsupported string length");
-    let mut res = AsciiString::with_capacity(56);
+    let mut res = Vec::with_capacity(56);
 
-    for chunk in chunk_str(s, 13) {
-        res.push_str(chunk);
+    for chunk in s.chunks_exact(13) {
+        res.extend_from_slice(chunk);
         let check = super::luhn::luhn32(chunk)?;
         res.push(check);
     }
@@ -99,11 +98,11 @@ fn luhnify(s: &AsciiStr) -> Result<AsciiString> {
     Ok(res)
 }
 
-fn deluhnify(s: &AsciiStr) -> Result<AsciiString> {
+fn deluhnify(s: &[u8]) -> Result<Vec<u8>> {
     ensure!(s.len() == 56);
 
-    let mut res = AsciiString::with_capacity(52);
-    for chunk in chunk_str(s, 14) {
+    let mut res = Vec::with_capacity(52);
+    for chunk in s.chunks_exact(14) {
         let data = &chunk[..13];
         let checksum = chunk[13];
         let computed_checksum = super::luhn::luhn32(data)?;
@@ -111,91 +110,51 @@ fn deluhnify(s: &AsciiStr) -> Result<AsciiString> {
             computed_checksum == checksum,
             "Device ID checksum validation failed!"
         );
-        res.push_str(data);
+        res.extend_from_slice(data);
     }
 
     Ok(res)
 }
 
-fn chunkify(s: &AsciiStr) -> AsciiString {
+fn chunkify(s: &[u8]) -> Vec<u8> {
     let num_chunks = s.len() / 7;
-    let mut res = AsciiString::with_capacity(num_chunks * (7 + 1) - 1);
-    for (i, chunk) in chunk_str(s, 7).enumerate() {
-        res.push_str(chunk);
+    let mut res = Vec::with_capacity(num_chunks * (7 + 1) - 1);
+    for (i, chunk) in s.chunks_exact(7).enumerate() {
+        res.extend_from_slice(chunk);
         if i != num_chunks - 1 {
-            res.push(AsciiChar::Minus);
+            res.push(b'-');
         }
     }
 
     res
 }
 
-fn dechunkify(s: &AsciiStr) -> AsciiString {
-    let mut dechunked = AsciiString::with_capacity(56);
-    s.split(AsciiChar::Minus)
-        .for_each(|chunk| dechunked.push_str(chunk));
+fn dechunkify(s: &[u8]) -> Vec<u8> {
+    let mut dechunked = Vec::with_capacity(56);
+    s.split(|c| *c == b'-')
+        .for_each(|chunk| dechunked.extend_from_slice(chunk));
     dechunked
-}
-
-/// Return an iterator over chunks of the input string of size `size`.
-///
-/// Note that the input size is expected to be a multiple of the size. Any remaining bit at the end will be dropped.
-fn chunk_str(s: &AsciiStr, size: usize) -> ChunkedStr {
-    ChunkedStr { size, remaining: s }
-}
-
-pub struct ChunkedStr<'a> {
-    size: usize,
-    remaining: &'a AsciiStr,
-}
-
-impl<'a> Iterator for ChunkedStr<'a> {
-    type Item = &'a AsciiStr;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.remaining.len() < self.size {
-            None
-        } else {
-            let chunk = &self.remaining[..self.size];
-            self.remaining = &self.remaining[self.size..];
-            Some(chunk)
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use ascii::AsAsciiStr;
-
     use super::*;
 
     #[test]
     fn test_chunkify() {
         assert_eq!(
-            chunkify("012345601234560123456".as_ascii_str().unwrap()),
-            "0123456-0123456-0123456".to_string()
+            chunkify(b"012345601234560123456"),
+            b"0123456-0123456-0123456"
         );
     }
 
     #[test]
     fn dechunkify() {
-        let s = "UYA4Y6A-RMU7JXN-RU4CXE4-22XPLPZ-67VCOXJ-PLGGPID-KC25D3A-BBREDQD"
-            .as_ascii_str()
-            .unwrap();
+        let s = b"UYA4Y6A-RMU7JXN-RU4CXE4-22XPLPZ-67VCOXJ-PLGGPID-KC25D3A-BBREDQD";
         assert_eq!(
-            "UYA4Y6ARMU7JXNRU4CXE422XPLPZ67VCOXJPLGGPIDKC25D3ABBREDQD",
-            super::dechunkify(s).as_str()
+            super::dechunkify(s),
+            b"UYA4Y6ARMU7JXNRU4CXE422XPLPZ67VCOXJPLGGPIDKC25D3ABBREDQD"
         );
-    }
-
-    #[test]
-    fn chunked_str() {
-        let s = "123456789".as_ascii_str().unwrap();
-        let expected = vec!["123", "456", "789"];
-        let chunks = super::chunk_str(s, 3)
-            .map(|s| s.as_str())
-            .collect::<Vec<_>>();
-        assert_eq!(expected, chunks);
     }
 
     #[test]

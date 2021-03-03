@@ -1,11 +1,6 @@
 use anyhow::{anyhow, Result};
-use ascii::{AsciiChar, AsciiStr};
-use lazy_static::lazy_static;
 
-lazy_static! {
-    static ref LUHN_BASE32: &'static AsciiStr =
-        unsafe { AsciiStr::from_ascii_unchecked(b"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567") };
-}
+static LUHN_BASE32: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 fn codepoint32(b: u8) -> Option<u8> {
     if (b'A'..=b'Z').contains(&b) {
@@ -18,17 +13,16 @@ fn codepoint32(b: u8) -> Option<u8> {
 }
 
 /// Computes the luhn32 checksum character of the given ascii string.
-pub fn luhn32(s: &AsciiStr) -> Result<AsciiChar> {
+pub fn luhn32(input: &[u8]) -> Result<u8> {
     let mut factor = 1;
     let mut sum: u32 = 0;
     let n = 32;
 
-    for ch in s.chars() {
-        let codepoint = codepoint32(ch as u8).ok_or_else(|| {
+    for ch in input {
+        let codepoint = codepoint32(*ch).ok_or_else(|| {
             anyhow!(
-                "digit {} is not valid in alphabet {}",
+                "character {} is not valid BASE32. It should be one of [A-Z2-7]",
                 ch,
-                LUHN_BASE32.as_str()
             )
         })?;
         let mut addend = factor * codepoint;
@@ -48,13 +42,13 @@ mod tests {
 
     #[test]
     fn test_ok() {
-        let s = AsciiStr::from_ascii(b"AB725E4GHIQPL3ZFGT").unwrap();
-        assert_eq!(luhn32(s).unwrap(), 'G');
+        let s = b"AB725E4GHIQPL3ZFGT";
+        assert_eq!(luhn32(s).unwrap(), b'G');
     }
 
     #[test]
     fn test_invalid() {
-        let s = AsciiStr::from_ascii(b"3734EJEKMRHWPZQTWYQ1").unwrap();
+        let s = b"3734EJEKMRHWPZQTWYQ1";
         assert!(luhn32(s).is_err());
     }
 }
