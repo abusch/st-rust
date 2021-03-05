@@ -14,7 +14,7 @@ use tokio_rustls::server::TlsStream;
 use tracing::{debug, error, info, warn};
 
 use crate::{
-    protocol::{connection::ConnectionHandle, DeviceId, MAGIC, MessageExt},
+    protocol::{connection::ConnectionHandle, DeviceId, MessageExt, MAGIC},
     protos::Hello,
 };
 

@@ -3,20 +3,15 @@ mod deviceid;
 mod luhn;
 mod model;
 
-use crate::protos::Close;
-use crate::protos::DownloadProgress;
-use crate::protos::Ping;
-use crate::protos::Response;
-use bytes::{Buf, BufMut};
-use std::io::Cursor;
-
-use anyhow::{anyhow, Result};
+use anyhow::Result;
+use bytes::{Buf, BufMut, Bytes};
 use prost::Message;
 use tokio::sync::oneshot;
 use tracing::debug;
 
 use crate::protos::{
-    ClusterConfig, Header, Index, IndexUpdate, MessageCompression, MessageType, Request,
+    Close, ClusterConfig, DownloadProgress, Header, Index, IndexUpdate, MessageCompression,
+    MessageType, Ping, Request, Response,
 };
 pub use deviceid::DeviceId;
 
@@ -43,7 +38,7 @@ pub enum TypedMessage {
 impl TypedMessage {
     /// Returns true if there is enough data in the buffer to parse a full frame
     /// (header + Message)
-    pub fn check_size(buf: &mut Cursor<&[u8]>) -> bool {
+    pub fn check_size(buf: &mut impl Buf) -> bool {
         // Do we have enough to read the header length?
         if buf.remaining() < 2 {
             return false;
@@ -72,7 +67,7 @@ impl TypedMessage {
     /// The content of the buffer should have already checked with
     /// [`check_size`] to make sure there is enough data in the buffer,
     /// otherwise this will panic.
-    pub fn parse(buf: &mut Cursor<&[u8]>) -> Result<Self> {
+    pub fn parse(buf: &mut impl Buf) -> Result<Self> {
         let hdr_len = buf.get_u16();
         debug!("Header length = {}", hdr_len);
         let hdr_bytes = buf.copy_to_bytes(hdr_len as usize);
@@ -80,11 +75,13 @@ impl TypedMessage {
         debug!(?header, "Got header");
 
         let msg_len = buf.get_u32();
-        let msg_bytes = buf.copy_to_bytes(msg_len as usize);
+        let mut msg_bytes = buf.copy_to_bytes(msg_len as usize);
 
         if header.compression() == MessageCompression::Lz4 {
-            // TODO Implement LZ4 compression support
-            return Err(anyhow!("Compressed message data is not implemented!"));
+            debug!("Got a compressed message");
+            let decompressed_msg = lz4_flex::decompress_size_prepended(&msg_bytes[..])?;
+            debug!("Decompressed data size: {} bytes", decompressed_msg.len());
+            msg_bytes = Bytes::from(decompressed_msg);
         }
 
         let msg = match header.r#type() {
@@ -175,7 +172,10 @@ pub trait MessageExt: Message {
     fn write_len32_and_bytes(&self, buf: &mut impl BufMut) -> Result<()>;
 }
 
-impl <T> MessageExt for T where T: Message + Sized {
+impl<T> MessageExt for T
+where
+    T: Message + Sized,
+{
     fn write_len16_and_bytes(&self, buf: &mut impl BufMut) -> Result<()> {
         buf.put_u16(self.encoded_len() as u16);
         self.encode(buf)?;
