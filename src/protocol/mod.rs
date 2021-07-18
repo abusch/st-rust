@@ -4,7 +4,7 @@ mod luhn;
 mod model;
 
 use anyhow::Result;
-use bytes::{Buf, BufMut, Bytes};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 use prost::Message;
 use tokio::sync::oneshot;
 use tracing::debug;
@@ -78,8 +78,16 @@ impl TypedMessage {
         let mut msg_bytes = buf.copy_to_bytes(msg_len as usize);
 
         if header.compression() == MessageCompression::Lz4 {
-            debug!("Got a compressed message");
-            let decompressed_msg = lz4_flex::decompress_size_prepended(&msg_bytes[..])?;
+            debug!("Got a compressed message ({} bytes)", msg_len);
+            // The first 4 bytes of the compressed payload contain the length of the uncompressed
+            // message in _big endian_ order, but `lz4_flex::decompress_size_prepended()` expects
+            // it in _little endian_ order :(
+            let mut foo = BytesMut::new();
+            let uncompressed_size = msg_bytes.get_u32();
+            foo.put_u32_le(uncompressed_size);
+            foo.extend_from_slice(&msg_bytes[..]);
+
+            let decompressed_msg = lz4_flex::decompress_size_prepended(&foo[..])?;
             debug!("Decompressed data size: {} bytes", decompressed_msg.len());
             msg_bytes = Bytes::from(decompressed_msg);
         }
@@ -87,7 +95,7 @@ impl TypedMessage {
         let msg = match header.r#type() {
             MessageType::ClusterConfig => {
                 let m = ClusterConfig::decode(&msg_bytes[..])?;
-                debug!("Got ClusterConfig with {} folders", m.folders.len());
+                debug!("Got ClusterConfig with {} folder(s)", m.folders.len());
                 Self::ClusterConfig(m)
             }
             MessageType::Index => Self::Index(Index::decode(&msg_bytes[..])?),

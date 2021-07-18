@@ -18,7 +18,7 @@ async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
     // TODO do something with it now
-    let config = config::load_config()?;
+    let _config = config::load_config()?;
 
     let certs = tls::load_certs("cert.pem")?;
     info!("Loaded {} certificates", certs.len());

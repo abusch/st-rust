@@ -129,9 +129,9 @@ where
         info!("Starting connection reader...");
         loop {
             match self.read_message().await {
-                Ok(Some(frame)) => {
-                    debug!("Dispatching frame...");
-                    match self.inbox.send(frame).await {
+                Ok(Some(msg)) => {
+                    debug!("Dispatching message...");
+                    match self.inbox.send(msg).await {
                         Ok(_) => {
                             // Message was sent to dispatcher, notify the ping receiver task
                             if let Err(e) = self.last_msg_received.send(Instant::now()) {
