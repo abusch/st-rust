@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::protocol::DeviceId;
 
-pub fn load_config() -> Result<Config> {
+pub fn load_config() -> Result<Configuration> {
     let project_dirs =
         ProjectDirs::from("", "", "st-rust").ok_or_else(|| anyhow!("No $HOME directory found!"))?;
     let config_dir = project_dirs.config_dir();
@@ -25,12 +25,12 @@ pub fn load_config() -> Result<Config> {
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Config {
-    pub devices: Vec<Device>,
+pub struct Configuration {
+    pub devices: Vec<DeviceConfiguration>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Device {
+pub struct DeviceConfiguration {
     pub id: DeviceId,
     pub name: Option<String>,
     #[serde(default)]
@@ -66,7 +66,7 @@ id = "MFZWI3D-BONSGYC-YLTMRWG-C43ENR5-QXGZDMM-FZWI3DP-BONSGYY-LTMRWAD"
 name="foo"
 compression = "always"
 "#;
-        let data = toml::from_str::<Config>(cfg).unwrap();
+        let data = toml::from_str::<Configuration>(cfg).unwrap();
 
         assert_eq!(2, data.devices.len());
     }
@@ -78,7 +78,7 @@ compression = "always"
 name="foo"
 compression = "always"
 "#;
-        let data = toml::from_str::<Config>(cfg);
+        let data = toml::from_str::<Configuration>(cfg);
 
         assert!(data.is_err())
     }

@@ -297,7 +297,9 @@ impl ConnectionDispatcher {
                 debug!("Got ClusterConfig from peer: switching connection state to Ready");
                 self.state = ConnectionState::Ready;
             }
-            TypedMessage::Index(_) => {}
+            TypedMessage::Index(_) => {
+                debug!("Got Index message from peer.");
+            }
             TypedMessage::IndexUpdate(_) => {}
             TypedMessage::Request(_) => {}
             TypedMessage::Response(_) => {}

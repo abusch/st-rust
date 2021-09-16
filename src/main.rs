@@ -8,6 +8,7 @@ mod discover;
 mod protocol;
 mod protos;
 mod tls;
+mod model;
 
 use connections::connection_service;
 use discover::local;
