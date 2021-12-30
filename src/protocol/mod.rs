@@ -82,12 +82,12 @@ impl TypedMessage {
             // The first 4 bytes of the compressed payload contain the length of the uncompressed
             // message in _big endian_ order, but `lz4_flex::decompress_size_prepended()` expects
             // it in _little endian_ order :(
-            let mut foo = BytesMut::new();
+            let mut compressed_data = BytesMut::new();
             let uncompressed_size = msg_bytes.get_u32();
-            foo.put_u32_le(uncompressed_size);
-            foo.extend_from_slice(&msg_bytes[..]);
+            compressed_data.put_u32_le(uncompressed_size);
+            compressed_data.extend_from_slice(&msg_bytes[..]);
 
-            let decompressed_msg = lz4_flex::decompress_size_prepended(&foo[..])?;
+            let decompressed_msg = lz4_flex::decompress_size_prepended(&compressed_data[..])?;
             debug!("Decompressed data size: {} bytes", decompressed_msg.len());
             msg_bytes = Bytes::from(decompressed_msg);
         }
@@ -114,8 +114,10 @@ impl TypedMessage {
     }
 
     pub fn header(&self) -> Header {
-        let mut header = Header::default();
-        header.r#type = self.message_type().into();
+        let mut header = Header {
+            r#type: self.message_type().into(),
+            ..Header::default()
+        };
         header.set_compression(MessageCompression::None);
 
         header

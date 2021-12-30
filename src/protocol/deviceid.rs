@@ -34,13 +34,13 @@ impl DeviceId {
         )
     }
 
-    pub fn to_bytes(&self) -> Bytes {
+    pub fn bytes(&self) -> Bytes {
         Bytes::copy_from_slice(&self.0[..])
     }
 
-    pub fn to_string(&self) -> String {
+    pub fn as_string(&self) -> String {
         let base32 = BASE32_NOPAD.encode(&self.0);
-        let luhnified = luhnify(&base32.as_bytes()).unwrap();
+        let luhnified = luhnify(base32.as_bytes()).unwrap();
         let chunkified = chunkify(&luhnified);
 
         // SAFETY: the bytes come from BASE32 data, and so belong to [A-Z2-7], which
@@ -52,7 +52,7 @@ impl DeviceId {
 
 impl Display for DeviceId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+        write!(f, "{}", self.as_string())
     }
 }
 
@@ -61,7 +61,7 @@ impl FromStr for DeviceId {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // De-chunkify
-        let dechunkified = dechunkify(&s.as_bytes());
+        let dechunkified = dechunkify(s.as_bytes());
 
         // De-luhnify
         let deluhnified = deluhnify(&dechunkified)?;

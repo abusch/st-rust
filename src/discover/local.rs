@@ -192,11 +192,10 @@ impl LocalBeacon {
 
     fn announce_msg(&self) -> Announce {
         let addresses = vec!["tcp://10.0.1.214:22000".to_string()];
-        let mut pkt = Announce::default();
-        pkt.id = self.my_id.to_bytes().to_vec();
-        pkt.instance_id = self.instance_id;
-        pkt.addresses = addresses;
-
-        pkt
+        Announce {
+            id: self.my_id.bytes().to_vec(),
+            instance_id: self.instance_id,
+            addresses,
+        }
     }
 }

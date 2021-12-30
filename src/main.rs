@@ -17,6 +17,7 @@ use discover::local;
 async fn main() -> Result<()> {
     // Initialize tracing
     tracing_subscriber::fmt::init();
+    // console_subscriber::init();
 
     // TODO do something with it now
     let _config = config::load_config()?;

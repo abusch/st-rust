@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use bytes::BufMut;
 use prost::Message;
-use rustls::{ServerConfig, Session};
+use rustls::{ServerConfig, ServerConnection};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
@@ -89,10 +89,11 @@ impl Service {
                     info!("Got a Hello packet! {:?}", hello);
 
                     // Send our own Hello back
-                    let mut reply = Hello::default();
-                    reply.device_name = "calculon".into();
-                    reply.client_name = "st-rust".into();
-                    reply.client_version = "0.1".into();
+                    let reply = Hello {
+                        device_name: "calculon".into(),
+                        client_name: "st-rust".into(),
+                        client_version: "0.1".into(),
+                    };
 
                     buf.clear();
                     buf.put(MAGIC);
@@ -115,16 +116,16 @@ impl Service {
         }
     }
 
-    fn validate_connection(&self, session: &dyn Session) -> Result<DeviceId> {
-        if let Some(alpn) = session.get_alpn_protocol() {
+    fn validate_connection(&self, session: &ServerConnection) -> Result<DeviceId> {
+        if let Some(alpn) = session.alpn_protocol() {
             let protocol = String::from_utf8_lossy(alpn);
             debug!(%protocol);
         }
-        if let Some(tls_version) = session.get_protocol_version() {
+        if let Some(tls_version) = session.protocol_version() {
             debug!(?tls_version);
         }
         let certs = session
-            .get_peer_certificates()
+            .peer_certificates()
             .ok_or_else(|| anyhow!("No remote certificates found"))?;
         if certs.len() != 1 {
             anyhow!("Wrong number of certificates: {}", certs.len());

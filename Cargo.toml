@@ -2,31 +2,32 @@
 name = "st-rust"
 version = "0.1.0"
 authors = ["Antoine Busch <antoine.busch@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.8", features = ["full"] }
+tokio = { version = "1.11", features = ["full"] }
 anyhow = "1.0"
 bytes = "1.0"
 byteorder = "1.4"
-prost = "0.8"
+prost = "0.9"
 ring = "0.16"
 data-encoding = "2.3"
-pem = "0.8"
+pem = "1.0"
 fastrand = "1.4"
-rustls = {version="0.19", features=["logging", "dangerous_configuration"]}
-tokio-rustls = "0.22"
+rustls = {version="0.20", features=["logging", "dangerous_configuration"]}
+rustls-pemfile = "0.2"
+tokio-rustls = "0.23"
 tracing = "0.1"
-tracing-subscriber = "0.2"
+tracing-subscriber = "0.3"
 url = "2.2"
 thiserror = "1"
 tracing-futures = "0.2"
 serde = { version="1.0", features=["derive"] }
 toml = "0.5"
-directories = "3.0"
-lz4_flex = "0.8"
+directories = "4"
+lz4_flex = "0.9"
 
 [build-dependencies]
-prost-build = "0.8"
+prost-build = "0.9"

@@ -73,7 +73,7 @@ impl ConnectionHandle {
         });
 
         Self {
-            outbox: outbox_tx.clone(),
+            outbox: outbox_tx,
         }
     }
 
