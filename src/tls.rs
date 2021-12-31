@@ -27,14 +27,12 @@ pub fn load_keys<P: AsRef<Path>>(path: P) -> Result<Vec<PrivateKey>> {
 /// it. It will also negotiate the "bep/1.0" protocol.
 pub fn tls_config(certs: Vec<Certificate>, key: PrivateKey) -> Result<ServerConfig> {
     // TLS config
-    let config = ServerConfig::builder()
+    let mut config = ServerConfig::builder()
         .with_safe_defaults()
         .with_client_cert_verifier(Arc::new(RequestCertificate))
         .with_single_cert(certs, key)?;
-
     // Set up application level protocol negotation and indicate we want bep/1.0
-    // TODO how do we set this? Do we really need to set it?
-    // config.set_protocols(&[b"bep/1.0".to_vec()]);
+    config.alpn_protocols.push(b"bep/1.0".to_vec());
 
     Ok(config)
 }
