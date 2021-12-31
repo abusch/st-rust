@@ -41,10 +41,18 @@ impl Listener {
         loop {
             match self.accept().await {
                 Ok((stream, addr)) => {
-                    let stream = acceptor.accept(stream).await?;
-                    match self.process_tcp_request(stream, addr).await {
-                        Ok(_) => info!("TCP connection successfully handled"),
-                        Err(e) => warn!(cause = %e, "Failed to handle TCP connection"),
+                    debug!("TCP connection accepted");
+                    match acceptor.accept(stream).await {
+                        Ok(stream) => {
+                            debug!("TLS connection accepted");
+                            match self.process_tcp_request(stream, addr).await {
+                                Ok(_) => info!("TCP connection successfully handled"),
+                                Err(e) => warn!(cause = %e, "Failed to handle TCP connection"),
+                            }
+                        }
+                        Err(e) => {
+                            error!(cause = %e, "Error while accepting TLS connection");
+                        }
                     }
                 }
                 Err(e) => error!(cause = %e, "Error while accepting TCP connection"),
@@ -63,7 +71,7 @@ impl Listener {
         // Set TCP options
         conn.set_nodelay(false)?;
         conn.set_linger(None)?;
-        // TODO keep-alive (doesn't to be supported in stdlib yet...)
+        // TODO keep-alive (doesn't seem to be supported in stdlib yet...)
 
         let internal_conn = InternalConn::new(stream);
         self.conn_tx.send(internal_conn).await?;
