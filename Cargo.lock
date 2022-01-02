@@ -671,6 +671,7 @@ dependencies = [
  "directories",
  "fastrand",
  "lz4_flex",
+ "parking_lot",
  "pem",
  "prost",
  "prost-build",

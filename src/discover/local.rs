@@ -6,14 +6,12 @@ use std::{
 
 use anyhow::{anyhow, Result};
 use bytes::{BufMut, BytesMut};
+use parking_lot::Mutex;
 use prost::Message;
 use tokio::{
     net::UdpSocket,
     select,
-    sync::{
-        watch::{self, Receiver},
-        Mutex,
-    },
+    sync::watch::{self, Receiver},
     time::sleep,
 };
 use tracing::{debug, error, info, instrument, warn};
@@ -25,7 +23,7 @@ use crate::{
 };
 
 /// Start the local discovery service. This will periodically announce our
-/// presence on then network, and listens for other peers on the network.
+/// presence on the network, and listen for other peers on the network.
 pub async fn local_discovery(
     device_id: DeviceId,
     shutdown_rx: watch::Receiver<bool>,
@@ -115,6 +113,10 @@ impl LocalListener {
         }
     }
 
+    /// Register a device i.e. make sure its address is valid and add it to our cache if so.
+    ///
+    /// Return true if that device was already known and its entry was still valid, false
+    /// otherwise.
     async fn register_device(&self, announce: Announce, src_addr: SocketAddr) -> bool {
         let device_id = DeviceId::new(&announce.id[..]);
         info!(
@@ -130,16 +132,18 @@ impl LocalListener {
             }
         }
 
-        let mut guard = self.cache.lock().await;
         // Adds the device to our cache
-        let old_value = guard.insert(
-            device_id,
-            CacheEntry {
-                addresses: valid_addresses,
-                when: Instant::now(),
-                instance_id: announce.instance_id,
-            },
-        );
+        let old_value = {
+            let mut guard = self.cache.lock();
+            guard.insert(
+                device_id,
+                CacheEntry {
+                    addresses: valid_addresses,
+                    when: Instant::now(),
+                    instance_id: announce.instance_id,
+                },
+            )
+        };
 
         old_value
             .map(|e| {
