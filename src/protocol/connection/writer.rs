@@ -2,6 +2,7 @@ use anyhow::Result;
 use bytes::BytesMut;
 use tokio::{
     io::{AsyncWrite, AsyncWriteExt},
+    select,
     sync::{mpsc, watch},
     time::Instant,
 };
@@ -18,6 +19,7 @@ pub struct ConnectionWriter<T> {
     outbox: mpsc::Receiver<AsyncTypedMessage>,
     buf: BytesMut,
     last_msg_sent: watch::Sender<Instant>,
+    shutdown_rx: watch::Receiver<bool>,
 }
 
 impl<T> ConnectionWriter<T>
@@ -28,19 +30,22 @@ where
         conn: T,
         outbox: mpsc::Receiver<AsyncTypedMessage>,
         last_msg_sent_tx: watch::Sender<Instant>,
+        shutdown_rx: watch::Receiver<bool>,
     ) -> Self {
         Self {
             conn,
             outbox,
             buf: BytesMut::with_capacity(1024),
             last_msg_sent: last_msg_sent_tx,
+            shutdown_rx,
         }
     }
 
     pub async fn run(&mut self) {
         info!("Starting connection writer...");
         loop {
-            if let Some(AsyncTypedMessage { msg, done }) = self.outbox.recv().await {
+            select! {
+            Some(AsyncTypedMessage { msg, done }) = self.outbox.recv() => {
                 if let Err(e) = self.send_msg(msg).await {
                     warn!(err = %e, "Failed to send message");
                 } else {
@@ -53,9 +58,11 @@ where
                         warn!("Failed to notify caller: the receiver was dropped")
                     });
                 }
-            } else {
+            },
+            _ = self.shutdown_rx.changed() => {
                 info!("Shutting down");
                 break;
+            }
             }
         }
     }

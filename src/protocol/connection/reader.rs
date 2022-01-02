@@ -2,7 +2,7 @@ use std::io::Cursor;
 
 use anyhow::{Result, anyhow};
 use bytes::{BytesMut, Buf};
-use tokio::{sync::{mpsc, watch}, time::Instant, io::{AsyncRead, AsyncReadExt}};
+use tokio::{sync::{mpsc, watch}, time::Instant, io::{AsyncRead, AsyncReadExt}, select};
 use tracing::{info, debug, warn, error, trace};
 
 use crate::protocol::TypedMessage;
@@ -15,6 +15,7 @@ pub struct ConnectionReader<T> {
     inbox: mpsc::Sender<TypedMessage>,
     buffer: BytesMut,
     last_msg_received: watch::Sender<Instant>,
+    shutdown_rx: watch::Receiver<bool>,
 }
 
 impl<T> ConnectionReader<T>
@@ -25,19 +26,23 @@ where
         conn: T,
         inbox: mpsc::Sender<TypedMessage>,
         last_msg_received: watch::Sender<Instant>,
+        shutdown_rx: watch::Receiver<bool>,
     ) -> Self {
         Self {
             conn,
             inbox,
             buffer: BytesMut::with_capacity(1024),
             last_msg_received,
+            shutdown_rx,
         }
     }
 
     pub async fn run(&mut self) {
         info!("Starting connection reader...");
+        let mut shutdown_rx = self.shutdown_rx.clone();
         loop {
-            match self.read_message().await {
+            select! {
+            res = self.read_message() => match res {
                 Ok(Some(msg)) => {
                     debug!("Dispatching message...");
                     match self.inbox.send(msg).await {
@@ -61,6 +66,11 @@ where
                     error!(err = %e, "Error reading frame");
                     break;
                 }
+            },
+            _ = shutdown_rx.changed() => {
+                info!("Shutting down connection reader");
+                break;
+            }
             }
         }
     }

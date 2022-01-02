@@ -3,6 +3,8 @@ use std::{net::SocketAddr, time::Duration};
 
 use anyhow::Result;
 use rustls::ServerConfig;
+use tokio::select;
+use tokio::sync::watch;
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::mpsc::Sender,
@@ -13,9 +15,9 @@ use tracing::{debug, error, info, warn};
 
 use super::InternalConn;
 
-pub async fn tcp_listener(conns: Sender<InternalConn>, tls_config: ServerConfig) -> Result<()> {
+pub async fn tcp_listener(conns: Sender<InternalConn>, tls_config: ServerConfig, shutdown_rx: watch::Receiver<bool>) -> Result<()> {
     let socket = TcpListener::bind("0.0.0.0:22000").await?;
-    let mut listener = Listener::new(socket, conns, tls_config);
+    let mut listener = Listener::new(socket, conns, tls_config, shutdown_rx);
 
     listener.run().await
 }
@@ -24,22 +26,26 @@ struct Listener {
     listener: TcpListener,
     conn_tx: Sender<InternalConn>,
     config: Arc<ServerConfig>,
+    shutdown_rx: watch::Receiver<bool>,
 }
 
 impl Listener {
-    pub fn new(listener: TcpListener, conn_tx: Sender<InternalConn>, config: ServerConfig) -> Self {
+    pub fn new(listener: TcpListener, conn_tx: Sender<InternalConn>, config: ServerConfig, shutdown_rx: watch::Receiver<bool>) -> Self {
         Self {
             listener,
             conn_tx,
             config: Arc::new(config),
+            shutdown_rx,
         }
     }
 
     pub async fn run(&mut self) -> Result<()> {
         let acceptor = TlsAcceptor::from(self.config.clone());
         info!("Listening for TCP requests on port 22000");
+        let mut shutdown_rx = self.shutdown_rx.clone();
         loop {
-            match self.accept().await {
+            select! {
+            res = self.accept() => match res {
                 Ok((stream, addr)) => {
                     debug!("TCP connection accepted");
                     match acceptor.accept(stream).await {
@@ -56,6 +62,11 @@ impl Listener {
                     }
                 }
                 Err(e) => error!(cause = %e, "Error while accepting TCP connection"),
+            },
+            _ = shutdown_rx.changed() => {
+                info!("Shutting down TCP listener");
+                return Ok(());
+            }
             }
         }
     }

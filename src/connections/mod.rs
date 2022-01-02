@@ -8,7 +8,7 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
     select,
-    sync::mpsc,
+    sync::{mpsc, watch::Receiver},
 };
 use tokio_rustls::server::TlsStream;
 use tracing::{debug, error, info, warn};
@@ -20,9 +20,13 @@ use crate::{
 
 pub mod tcp;
 
-pub async fn connection_service(my_id: DeviceId, tls_config: ServerConfig) -> Result<()> {
+pub async fn connection_service(
+    my_id: DeviceId,
+    tls_config: ServerConfig,
+    shutdown_rx: Receiver<bool>,
+) -> Result<()> {
     let (conns_tx, conns_rx) = mpsc::channel(10);
-    let mut service = Service::new(my_id, conns_rx);
+    let mut service = Service::new(my_id, conns_rx, shutdown_rx.clone());
 
     select! {
         res = service.handle() => {
@@ -30,7 +34,7 @@ pub async fn connection_service(my_id: DeviceId, tls_config: ServerConfig) -> Re
                 error!(cause = %err, "failed to handle connections");
             }
         }
-        res = tcp::tcp_listener(conns_tx, tls_config) => {
+        res = tcp::tcp_listener(conns_tx, tls_config, shutdown_rx.clone()) => {
             if let Err(err) = res {
                 error!(cause = %err, "failed to accept");
             }
@@ -46,22 +50,26 @@ pub struct Service {
     my_id: DeviceId,
     conns: mpsc::Receiver<InternalConn>,
     connections: HashMap<DeviceId, ConnectionHandle>,
+    shutdown_rx: Receiver<bool>,
 }
 
 impl Service {
-    pub fn new(my_id: DeviceId, conns: mpsc::Receiver<InternalConn>) -> Self {
+    pub fn new(my_id: DeviceId, conns: mpsc::Receiver<InternalConn>, shutdown_rx: Receiver<bool>) -> Self {
         Self {
             my_id,
             conns,
             connections: HashMap::new(),
+            shutdown_rx,
         }
     }
 
     pub async fn handle(&mut self) -> Result<()> {
         loop {
-            if let Some(internal_conn) = self.conns.recv().await {
+            select! {
+            Some(internal_conn) = self.conns.recv() => {
                 let mut stream = internal_conn.conn;
-                let (_conn, session) = stream.get_ref();
+                let (conn, session) = stream.get_ref();
+                let peer_addr = conn.peer_addr()?;
                 let remote_id = match self.validate_connection(session) {
                     Ok(device_id) => {
                         info!(remote_id = %device_id, "Connection is valid");
@@ -103,15 +111,17 @@ impl Service {
                     debug!("Sent {} bytes back", buf.len());
 
                     debug!("Dispatching task to handle connection");
-                    let mut connection_handle = ConnectionHandle::new(stream);
+                    let mut connection_handle = ConnectionHandle::new(peer_addr, stream, self.shutdown_rx.clone());
                     debug!("Sending ClusterConfig");
                     connection_handle.config_cluster().await?;
                     self.connections.insert(remote_id, connection_handle);
                 } else {
                     warn!("Invalid magic number in header: {:?}", header);
                 }
-            } else {
-                info!("Shutting down...");
+            },
+            _ = self.shutdown_rx.changed() => {
+                info!("Shutting down connection service");
+            }
             }
         }
     }

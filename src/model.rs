@@ -7,8 +7,6 @@ pub struct Model {
     cfg: Configuration,
     client_name: String,
     client_version: String,
-
-
 }
 
 impl Model {

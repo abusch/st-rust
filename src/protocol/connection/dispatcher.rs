@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tokio::sync::mpsc;
+use tokio::{sync::{mpsc, watch}, select};
 use tracing::{info, warn, debug};
 
 use crate::protocol::TypedMessage;
@@ -13,27 +13,31 @@ use super::ConnectionState;
 pub struct ConnectionDispatcher {
     inbox: mpsc::Receiver<TypedMessage>,
     state: ConnectionState,
+    shutdown_rx: watch::Receiver<bool>,
 }
 
 impl ConnectionDispatcher {
-    pub fn new(inbox: mpsc::Receiver<TypedMessage>) -> Self {
+    pub fn new(inbox: mpsc::Receiver<TypedMessage>, shutdown_rx: watch::Receiver<bool>) -> Self {
         Self {
             inbox,
             state: ConnectionState::Initial,
+            shutdown_rx
         }
     }
 
     pub async fn run(&mut self) {
         info!("Starting connection message dispatcher...");
         loop {
-            let msg = if let Some(frame) = self.inbox.recv().await {
-                frame
-            } else {
-                info!("Shutting down");
+            select! {
+            Some(msg) = self.inbox.recv() => {
+                if let Err(e) = self.dispatch(&msg).await {
+                    warn!(%e, ?msg, "Failed to dispatch message");
+                }
+            },
+            _ = self.shutdown_rx.changed() => {
+                info!("Shutting down connection dispatcher");
                 break;
-            };
-            if let Err(e) = self.dispatch(&msg).await {
-                warn!(%e, ?msg, "Failed to dispatch message");
+            }
             }
         }
     }
