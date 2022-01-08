@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::{anyhow, Context, Result};
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
@@ -26,10 +28,17 @@ pub fn load_config() -> Result<Configuration> {
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Configuration {
+    pub folders: Vec<Folder>,
     pub devices: Vec<DeviceConfiguration>,
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+impl Configuration {
+   pub fn device(&self, id: &DeviceId) -> Option<DeviceConfiguration> {
+       self.devices.iter().find(|d| d.id == *id).cloned()
+   }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeviceConfiguration {
     pub id: DeviceId,
     pub name: Option<String>,
@@ -37,7 +46,7 @@ pub struct DeviceConfiguration {
     pub compression: Compression,
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Compression {
     Metadata,
@@ -51,6 +60,36 @@ impl Default for Compression {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Folder {
+    pub id: String,
+    pub label: String,
+    pub path: PathBuf,
+    #[serde(default)]
+    pub r#type: FolderSyncType,
+    pub device: Vec<FolderDevice>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FolderSyncType {
+    SendReceive,
+    SendOnly,
+    ReceiveOnly,
+}
+
+impl Default for FolderSyncType {
+    fn default() -> Self {
+        Self::SendReceive
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FolderDevice {
+    pub id: String,
+    pub introduced_by: Option<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -58,6 +97,13 @@ mod tests {
     #[test]
     fn config_full() {
         let cfg = r#"
+[[folders]]
+id = "abcd-1234"
+label = "Default"
+path = "/home/abusch/Default"
+[[folders.device]]
+id =  "UYA4Y6A-RMU7JXN-RU4CXE4-22XPLPZ-67VCOXJ-PLGGPID-KC25D3A-BBREDQD"
+
 [[devices]]
 id = "UYA4Y6A-RMU7JXN-RU4CXE4-22XPLPZ-67VCOXJ-PLGGPID-KC25D3A-BBREDQD"
 
@@ -68,6 +114,8 @@ compression = "always"
 "#;
         let data = toml::from_str::<Configuration>(cfg).unwrap();
 
+        assert_eq!(1, data.folders.len());
+        assert_eq!(1, data.folders[0].device.len());
         assert_eq!(2, data.devices.len());
     }
 

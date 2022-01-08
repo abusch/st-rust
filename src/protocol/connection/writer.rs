@@ -6,7 +6,7 @@ use tokio::{
     sync::{mpsc, watch},
     time::Instant,
 };
-use tracing::{info, warn};
+use tracing::{info, warn, debug};
 
 use crate::protocol::{AsyncTypedMessage, TypedMessage};
 
@@ -46,6 +46,7 @@ where
         loop {
             select! {
             Some(AsyncTypedMessage { msg, done }) = self.outbox.recv() => {
+                debug!("Sending message to peer");
                 if let Err(e) = self.send_msg(msg).await {
                     warn!(err = %e, "Failed to send message");
                 } else {
