@@ -15,7 +15,7 @@ parts of it in rust.
   In progress....
 - [X] Keep the connection open and handle incoming messages
 - [X] Try switching to =prost= as protobuf implementation
-- [ ] properly handle connection shutdown
+- [X] properly handle connection shutdown
 - [ ] discover our IP address(es) instead of hardcoding it
 - [X] Start putting stuff in a config file (eg. peers that we know about)
 - [ ] Start implementing the Model
@@ -45,6 +45,7 @@ data): base64 data between delimiters:
 
 The binary data encoded in the PEM file is the certificate encoded with ASN.1
 and serialized with DER.
+
 ***** ASN.1
 ASN.1 defines a way to encode data in data structures i.e. defines a grammar for
 a set of types, with their fields.
@@ -70,6 +71,7 @@ The general structure of a certificate, encoded as ASN.1, is as follows:
     Certificate Signature Algorithm
     Certificate Signature
 #+end_src
+
 ***** DER
 =DER= is a _type-length-value_ way to serialize data such as ASN.1 into bytes.
 
@@ -78,19 +80,28 @@ The general structure of a certificate, encoded as ASN.1, is as follows:
 - base-32 encoded
 - in recent versions the device ID contains 4 checksum digits (1 every 13 characters), so the length of the ID is 56 instead of 52. See Luhn's algorithm.
 - '-' are inserted every 7 characters for readability purposed
+
 ** Local discovery
 *** Listening for announcement packets on the local network
 - Listens for UDP messages broadcasted on port 21027. Registers the announced devices in a cache.
 - The cache is used to resolve device ids
+
 *** announce current device on the network
 - every 30-60s broadcast an =Announce= packet on the network
 
 ** Connecting to a peer
-- Try to resolve the device id to get addresses to connect to, by looking through different "providers" eg. config file, local discovery, global discovery, etc.
+- Try to resolve the device id to get addresses to connect to, by looking
+  through different "providers" eg. config file, local discovery, global
+  discovery, etc.
 - Connect to the address with TLS while presenting our own certificate
 - exchange =Hello= packet
 - Verify that the remote certificate (there should be only one) matches the device ID we expect.
-- send =ClusterConfig= message
+- send =ClusterConfig= message:
+  This contains a list of folders to synchronize with the peer. The list is
+  taken from the config file.
+- For each folder sent in the =ClusterConfig= message, send an =Index= message
+  with the list of files that we have. The peer will do the same.
+
 ** Main loop
 - a =service= launches a bunch of goroutines:
   + one to listen for incoming connections
@@ -118,13 +129,20 @@ out of the box...
 
 The workaround was to implement a custom =ClientCertVerifier= that requests the
 peer certificate but doesn't do authentication (or rather, accepts
-everything...). It required enable the =dangerous_configuration= feature on the
+everything...). It required enabling the =dangerous_configuration= feature on the
 =rustls= crate to access the =ClientCertVerifier= trait.
 ** Lifecycle
 Not quite sure yet how to handle the lifecycle of all the pieces... When we get
-the ctrl-c and exit the =select!= block, we drop the different the services
+the ctrl-c and exit the =select= block, we drop the different the services
 which should close the different sockets properly. We might need something more
 sophisticated to close all the open connections.
+
+Ended up using a `Watch<bool>` from Tokio. Each async task gets a =Receiver=,
+which they `await` on. When it's time to shutdown, the main thread broadcasts
+=true= on the channel, which causes all tasks to finish up and drop their
+=Receiver=. Meanwhile the main threads =await=s on the =Sender= for all the
+=Receiver=s to be dropped.
+
 ** Connection handling
 In the =go= version, when a connection is "started", a bunch of goroutines are started:
 - one to listen for incoming TCP messages, deserialize them, and send them to an =inbox= channel
@@ -160,4 +178,4 @@ i.e the entire packet consists of 6 null bytes: =0x000000=. This confused me for
 a while when I was debugging things...
 *** prost
 Stumbled upon the =prost= crate which seems to be another implementation of protobufs in Rust. It seems simpler (but relies on macros). Also seems to play better with the =bytes= crate.
-- [ ] Try out (and potentially switch to) prost
+- [X] Try out (and potentially switch to) prost

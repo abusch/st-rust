@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Result, bail};
 use bytes::BufMut;
 use prost::Message;
 use rustls::{ServerConfig, ServerConnection};
@@ -86,7 +86,7 @@ impl Service {
                     info!("Found magic header");
                     let len = stream.read_u16().await?;
                     if len > 32767 {
-                        anyhow!("Hello message too big: {}", len);
+                        bail!("Hello message too big: {}", len);
                     }
                     let mut buf = vec![0u8; len as usize];
                     stream.read_exact(&mut buf).await?;
@@ -135,7 +135,7 @@ impl Service {
             .peer_certificates()
             .ok_or_else(|| anyhow!("No remote certificates found"))?;
         if certs.len() != 1 {
-            anyhow!("Wrong number of certificates: {}", certs.len());
+            bail!("Wrong number of certificates: {}", certs.len());
         }
         let peer_id = DeviceId::from_der_cert(&certs[0].0);
 

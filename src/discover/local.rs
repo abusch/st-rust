@@ -4,7 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{bail, Result};
 use bytes::{BufMut, BytesMut};
 use parking_lot::Mutex;
 use prost::Message;
@@ -168,7 +168,7 @@ impl LocalListener {
             if (url.scheme() == "tcp4" && src.is_ipv6())
                 || (url.scheme() == "tcp6" && src.is_ipv4())
             {
-                anyhow!("Source address IP version doesn't match requested type");
+                bail!("Source address IP version doesn't match requested type");
             } else {
                 // join the IP of the src address with the port of the current address
                 url.set_host(Some(&src.ip().to_string()))?;
